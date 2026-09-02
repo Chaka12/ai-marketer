@@ -1,0 +1,1557 @@
+     1→create this system for me and make it production ready. No fake code or stubs, build module by module, test everything to make sure  it works as expected and give it to me: AI-operated content marketing system.
+     2→
+     3→The scheduler is only one module.
+     4→
+     5→The core product is:
+     6→
+     7→Raw content in → understand the brand and objective → develop a content strategy → generate platform-ready content → obtain approval where appropriate → publish → monitor results → learn → improve the next cycle.
+     8→
+     9→And because you're specifically interested in Facebook, I would make Facebook Pages the primary automated publishing destination, while treating Groups as a separate distribution workflow because their automation capabilities and permissions are more constrained.
+    10→
+    11→Below is how I would architect the whole thing.
+    12→
+    13→1. The product concept
+    14→
+    15→Imagine the user sees this when they open the application:
+    16→
+    17→                         AI CONTENT ENGINE
+    18→
+    19→ ┌──────────────────────────────────────────────────────────┐
+    20→ │                    THIS WEEK                              │
+    21→ │                                                          │
+    22→ │  Campaign: Summer Collection                             │
+    23→ │  Objective: Store visits + WhatsApp enquiries            │
+    24→ │                                                          │
+    25→ │  Content supplied: 7 photos                              │
+    26→ │  Posts generated: 14                                    │
+    27→ │  Posts scheduled: 12                                     │
+    28→ │  Awaiting approval: 2                                    │
+    29→ │                                                          │
+    30→ │              [ REVIEW WEEK ]                             │
+    31→ └──────────────────────────────────────────────────────────┘
+    32→
+    33→The user shouldn't have to understand:
+    34→
+    35→APIs
+    36→content calendars
+    37→prompt engineering
+    38→hashtags
+    39→posting frequency
+    40→image dimensions
+    41→campaign architecture
+    42→analytics
+    43→
+    44→They tell the system:
+    45→
+    46→What do I have? What am I trying to accomplish?
+    47→
+    48→The system figures out the execution.
+    49→
+    50→2. The complete end-to-end architecture
+    51→
+    52→I'd divide the system into roughly 12 modules.
+    53→
+    54→                         ┌──────────────────┐
+    55→                         │      USER        │
+    56→                         └────────┬─────────┘
+    57→                                  │
+    58→                     photos / videos / brief
+    59→                                  │
+    60→                                  ▼
+    61→                    ┌─────────────────────────┐
+    62→                    │  1. CONTENT INTAKE      │
+    63→                    └────────────┬────────────┘
+    64→                                 │
+    65→                                 ▼
+    66→                    ┌─────────────────────────┐
+    67→                    │  2. CONTENT UNDERSTANDER │
+    68→                    │                           │
+    69→                    │  Vision + metadata       │
+    70→                    └────────────┬────────────┘
+    71→                                 │
+    72→                                 ▼
+    73→                    ┌─────────────────────────┐
+    74→                    │  3. BRAND BRAIN          │
+    75→                    │                           │
+    76→                    │  Voice                   │
+    77→                    │  Audience                │
+    78→                    │  Products                │
+    79→                    │  Rules                   │
+    80→                    └────────────┬────────────┘
+    81→                                 │
+    82→                                 ▼
+    83→                    ┌─────────────────────────┐
+    84→                    │  4. STRATEGY ENGINE      │
+    85→                    │                           │
+    86→                    │  Objectives              │
+    87→                    │  Content pillars         │
+    88→                    │  Campaign                │
+    89→                    │  Calendar                │
+    90→                    └────────────┬────────────┘
+    91→                                 │
+    92→                                 ▼
+    93→                    ┌─────────────────────────┐
+    94→                    │  5. CONTENT GENERATOR    │
+    95→                    │                           │
+    96→                    │  Captions                │
+    97→                    │  Hooks                   │
+    98→                    │  CTAs                    │
+    99→                    │  Hashtags                │
+   100→                    │  Variations              │
+   101→                    └────────────┬────────────┘
+   102→                                 │
+   103→                                 ▼
+   104→                    ┌─────────────────────────┐
+   105→                    │  6. MEDIA ENGINE         │
+   106→                    │                           │
+   107→                    │  Resize                  │
+   108→                    │  Crop                    │
+   109→                    │  Overlay                 │
+   110→                    │  Alt text                │
+   111→                    └────────────┬────────────┘
+   112→                                 │
+   113→                                 ▼
+   114→                    ┌─────────────────────────┐
+   115→                    │  7. APPROVAL ENGINE      │
+   116→                    │                           │
+   117→                    │  Human review            │
+   118→                    │  Edit                    │
+   119→                    │  Regenerate              │
+   120→                    └────────────┬────────────┘
+   121→                                 │
+   122→                                 ▼
+   123→                    ┌─────────────────────────┐
+   124→                    │  8. SCHEDULER            │
+   125→                    └────────────┬────────────┘
+   126→                                 │
+   127→                                 ▼
+   128→                 ┌───────────────┼────────────────┐
+   129→                 │               │                │
+   130→                 ▼               ▼                ▼
+   131→          ┌────────────┐  ┌────────────┐   ┌────────────┐
+   132→          │ Facebook   │  │ Facebook   │   │ Other      │
+   133→          │ Page API   │  │ Groups     │   │ Platforms  │
+   134→          └────────────┘  └────────────┘   └────────────┘
+   135→                 │               │                │
+   136→                 ▼               ▼                ▼
+   137→             published      manual/limited     published
+   138→                 │
+   139→                 └───────────────┬────────────────┘
+   140→                                 ▼
+   141→                    ┌─────────────────────────┐
+   142→                    │  9. MONITORING           │
+   143→                    │                           │
+   144→                    │  Success/failure         │
+   145→                    │  API errors              │
+   146→                    │  Token expiry            │
+   147→                    └────────────┬────────────┘
+   148→                                 │
+   149→                                 ▼
+   150→                    ┌─────────────────────────┐
+   151→                    │ 10. ANALYTICS            │
+   152→                    └────────────┬────────────┘
+   153→                                 │
+   154→                                 ▼
+   155→                    ┌─────────────────────────┐
+   156→                    │ 11. LEARNING ENGINE      │
+   157→                    │                           │
+   158→                    │ "What worked?"           │
+   159→                    └────────────┬────────────┘
+   160→                                 │
+   161→                                 ▼
+   162→                    ┌─────────────────────────┐
+   163→                    │ 12. NEXT-CYCLE PLANNER   │
+   164→                    └─────────────────────────┘
+   165→
+   166→That modular separation is important.
+   167→
+   168→You don't want one giant AI agent responsible for everything.
+   169→
+   170→3. Module 1 — Content Intake
+   171→
+   172→This is the user's entry point.
+   173→
+   174→The user could upload:
+   175→
+   176→images
+   177→videos
+   178→PDFs
+   179→product information
+   180→flyers
+   181→screenshots
+   182→URLs
+   183→text
+   184→voice notes
+   185→
+   186→But for the initial product, I'd make the interface extremely simple.
+   187→
+   188→Weekly upload
+   189→┌────────────────────────────────────────────┐
+   190→│         CREATE THIS WEEK'S CONTENT         │
+   191→│                                            │
+   192→│  Drop photos/videos here                   │
+   193→│                                            │
+   194→│  [ + Upload ]                              │
+   195→│                                            │
+   196→│  7 files                                   │
+   197→│                                            │
+   198→│  ────────────────────────────────────────  │
+   199→│                                            │
+   200→│  What's happening this week?               │
+   201→│                                            │
+   202→│  [____________________________________]    │
+   203→│                                            │
+   204→│  What do you want to achieve?              │
+   205→│                                            │
+   206→│  ☑ Awareness                               │
+   207→│  ☑ Engagement                              │
+   208→│  ☑ Sales                                   │
+   209→│  ☐ Leads                                   │
+   210→│  ☐ Event promotion                         │
+   211→│                                            │
+   212→│             [GENERATE WEEK]                │
+   213→└────────────────────────────────────────────┘
+   214→
+   215→The user can say:
+   216→
+   217→"We have a new product arriving. We want people to know about it and encourage them to visit the shop. Don't make every post a sales pitch."
+   218→
+   219→That's enough.
+   220→
+   221→4. Module 2 — Content Understanding
+   222→
+   223→This is where AI looks at the actual material.
+   224→
+   225→Suppose the user uploads seven photos.
+   226→
+   227→The system shouldn't immediately generate captions.
+   228→
+   229→First it creates a structured representation.
+   230→
+   231→For example:
+   232→
+   233→ASSET 001
+   234→
+   235→Type: Image
+   236→Subject: New red handbag
+   237→Setting: Retail store
+   238→Visible text: "Summer 2026"
+   239→Objects: handbag, display table
+   240→People: none
+   241→Product: Summer Collection
+   242→Quality: high
+   243→Suggested uses:
+   244→  - product showcase
+   245→  - announcement
+   246→  - promotional content
+   247→
+   248→Another image might become:
+   249→
+   250→ASSET 002
+   251→
+   252→Subject: Customer holding handbag
+   253→People: 1
+   254→Setting: Store
+   255→Emotion: smiling
+   256→Suggested uses:
+   257→  - social proof
+   258→  - lifestyle
+   259→  - community
+   260→
+   261→This gives the downstream AI facts about the actual image.
+   262→
+   263→That's much better than blindly asking an LLM:
+   264→
+   265→"Write a caption for this."
+   266→
+   267→5. Module 3 — The Brand Brain
+   268→
+   269→This could become one of your biggest competitive advantages.
+   270→
+   271→Every business gets a persistent Brand Profile.
+   272→
+   273→For example:
+   274→
+   275→Brand
+   276→
+   277→Luxury local fashion retailer.
+   278→
+   279→Audience
+   280→
+   281→Women 25–45.
+   282→
+   283→Location
+   284→
+   285→Maseru.
+   286→
+   287→Personality
+   288→
+   289→Elegant, warm, confident.
+   290→
+   291→Writing style
+   292→
+   293→Short paragraphs. Conversational. Never corporate.
+   294→
+   295→CTA
+   296→
+   297→Visit the store or message us.
+   298→
+   299→Avoid
+   300→
+   301→Excessive emojis
+   302→Fake urgency
+   303→Unsupported claims
+   304→Generic motivational quotes
+   305→
+   306→Products
+   307→
+   308→Structured database containing:
+   309→
+   310→Product
+   311→Price
+   312→Description
+   313→Availability
+   314→Features
+   315→URL
+   316→Promotion
+   317→Expiry date
+   318→Brand vocabulary
+   319→Use:
+   320→"collection"
+   321→"discover"
+   322→"visit us"
+   323→
+   324→Avoid:
+   325→"cheap"
+   326→"guaranteed"
+   327→"best in the country"
+   328→
+   329→Now the AI doesn't have to rediscover the business every week.
+   330→
+   331→6. Module 4 — Strategy Engine
+   332→
+   333→This is where I'd differentiate the product from generic AI caption generators.
+   334→
+   335→The system determines:
+   336→
+   337→What should we communicate?
+   338→
+   339→rather than merely:
+   340→
+   341→How should we phrase this?
+   342→
+   343→It takes:
+   344→
+   345→Brand
+   346→+
+   347→Business goals
+   348→+
+   349→Available content
+   350→+
+   351→Previous performance
+   352→+
+   353→Current campaign
+   354→+
+   355→Calendar/events
+   356→
+   357→and produces a content strategy.
+   358→
+   359→For example:
+   360→
+   361→Weekly strategy
+   362→
+   363→Objective: Awareness + store visits
+   364→
+   365→Content mix:
+   366→
+   367→25% promotional
+   368→25% educational
+   369→20% lifestyle
+   370→15% social proof
+   371→15% engagement
+   372→
+   373→Then:
+   374→
+   375→MON
+   376→Product introduction
+   377→
+   378→TUE
+   379→Educational
+   380→
+   381→WED
+   382→Lifestyle
+   383→
+   384→THU
+   385→Customer/social proof
+   386→
+   387→FRI
+   388→Promotion
+   389→
+   390→SAT
+   391→Engagement
+   392→
+   393→SUN
+   394→Community
+   395→
+   396→Notice what's happening.
+   397→
+   398→The user gave the machine 7 photos.
+   399→
+   400→The machine is now creating a marketing campaign.
+   401→
+   402→That's the valuable part.
+   403→
+   404→7. Module 5 — Content Generator
+   405→
+   406→Only after strategy has been determined does the AI write.
+   407→
+   408→For each planned post, it generates a structured object:
+   409→
+   410→{
+   411→  "objective": "awareness",
+   412→  "content_pillar": "product",
+   413→  "asset": "asset_001",
+   414→  "hook": "...",
+   415→  "caption": "...",
+   416→  "cta": "...",
+   417→  "hashtags": ["..."],
+   418→  "alt_text": "...",
+   419→  "scheduled_time": "...",
+   420→  "confidence": 0.91
+   421→}
+   422→
+   423→I'd actually generate multiple candidates internally.
+   424→
+   425→For example:
+   426→
+   427→Candidate A
+   428→Educational
+   429→
+   430→Candidate B
+   431→Storytelling
+   432→
+   433→Candidate C
+   434→Direct response
+   435→
+   436→Then another evaluation layer scores them.
+   437→
+   438→8. The AI should critique itself
+   439→
+   440→Don't do:
+   441→
+   442→LLM → caption → publish
+   443→
+   444→Do:
+   445→
+   446→LLM
+   447→ ↓
+   448→Generate 3 candidates
+   449→ ↓
+   450→Evaluator
+   451→ ↓
+   452→Check:
+   453→  - factual accuracy
+   454→  - brand voice
+   455→  - repetition
+   456→  - CTA
+   457→  - spamminess
+   458→  - prohibited claims
+   459→  - image relevance
+   460→  - campaign objective
+   461→ ↓
+   462→Best candidate
+   463→
+   464→This is much more reliable.
+   465→
+   466→9. Module 6 — Media Engine
+   467→
+   468→This is another module people overlook.
+   469→
+   470→Different platforms and placements can have different requirements.
+   471→
+   472→The media engine handles:
+   473→
+   474→image resizing
+   475→cropping
+   476→aspect-ratio adaptation
+   477→thumbnails
+   478→compression
+   479→video processing
+   480→captions/subtitles where appropriate
+   481→alt text
+   482→text overlays
+   483→branding
+   484→
+   485→But there's an important principle:
+   486→
+   487→Never alter the original asset.
+   488→
+   489→Store:
+   490→
+   491→Original
+   492→   │
+   493→   ├── Facebook version
+   494→   ├── Instagram version
+   495→   ├── TikTok version
+   496→   └── Ad version
+   497→10. Module 7 — Approval Engine
+   498→
+   499→This is critical for a commercial product.
+   500→
+   501→The user should have three possible modes.
+   502→
+   503→Manual
+   504→
+   505→Everything requires approval.
+   506→
+   507→Assisted
+   508→
+   509→AI prepares everything; user approves the week's schedule.
+   510→
+   511→Autonomous
+   512→
+   513→AI publishes automatically unless something violates a rule.
+   514→
+   515→I'd make Assisted the default.
+   516→
+   517→11. The approval screen
+   518→
+   519→This could be one of the most important UI screens in the entire product.
+   520→
+   521→              WEEKLY CONTENT REVIEW
+   522→
+   523→MONDAY
+   524→─────────────────────────────────────
+   525→
+   526→[ IMAGE ]
+   527→
+   528→"There's something new waiting..."
+   529→
+   530→Goal:
+   531→Awareness
+   532→
+   533→Facebook Page
+   534→Monday 09:00
+   535→
+   536→[ Edit ] [ Regenerate ] [ Approve ]
+   537→
+   538→─────────────────────────────────────
+   539→
+   540→TUESDAY
+   541→─────────────────────────────────────
+   542→
+   543→[ IMAGE ]
+   544→
+   545→"Ever wondered why..."
+   546→
+   547→Goal:
+   548→Education
+   549→
+   550→Facebook Page
+   551→Tuesday 13:00
+   552→
+   553→[ Edit ] [ Regenerate ] [ Approve ]
+   554→
+   555→And at the bottom:
+   556→
+   557→12 posts ready
+   558→
+   559→[ APPROVE ALL ]
+   560→
+   561→One click.
+   562→
+   563→12. Module 8 — Scheduler
+   564→
+   565→Once approved, posts enter a queue.
+   566→
+   567→Internally I'd use something like:
+   568→
+   569→POST
+   570→│
+   571→├── Account
+   572→├── Destination
+   573→├── Asset
+   574→├── Caption
+   575→├── Campaign
+   576→├── Scheduled time
+   577→├── Status
+   578→└── Publishing method
+   579→
+   580→Status could be:
+   581→
+   582→DRAFT
+   583→↓
+   584→APPROVED
+   585→↓
+   586→SCHEDULED
+   587→↓
+   588→PUBLISHING
+   589→↓
+   590→PUBLISHED
+   591→
+   592→or:
+   593→
+   594→FAILED
+   595→↓
+   596→RETRY
+   597→↓
+   598→PUBLISHED
+   599→13. Facebook should be an adapter
+   600→
+   601→This is important for modularity.
+   602→
+   603→Don't hard-code Facebook throughout your application.
+   604→
+   605→Create a generic publishing interface:
+   606→
+   607→Publisher
+   608→│
+   609→├── FacebookPublisher
+   610→├── InstagramPublisher
+   611→├── TikTokPublisher
+   612→├── XPublisher
+   613→└── LinkedInPublisher
+   614→
+   615→Then your application says:
+   616→
+   617→Publish this content.
+   618→
+   619→The Facebook adapter knows how Facebook works.
+   620→
+   621→That means you can add another platform later without rebuilding the entire application.
+   622→
+   623→Meta's official developer ecosystem provides APIs for Page-related operations, but the exact permissions and capabilities available to an app depend on Meta's current platform policies and review requirements. So the Facebook adapter should isolate those assumptions rather than spreading them throughout your codebase.
+   624→
+   625→14. Facebook Groups should be a separate subsystem
+   626→
+   627→I would not treat Groups as equivalent to Pages.
+   628→
+   629→Instead:
+   630→
+   631→                DISTRIBUTION
+   632→
+   633→                    │
+   634→          ┌─────────┴─────────┐
+   635→          │                   │
+   636→       PAGE              GROUPS
+   637→          │                   │
+   638→     API publishing      Eligibility check
+   639→                              │
+   640→                   ┌──────────┴─────────┐
+   641→                   │                    │
+   642→               Automated             Manual
+   643→               where allowed          workflow
+   644→
+   645→For every group, maintain:
+   646→
+   647→Group
+   648→├── Name
+   649→├── URL/identifier
+   650→├── Permission status
+   651→├── Automation status
+   652→├── Posting rules
+   653→├── Allowed frequency
+   654→├── Content style
+   655→└── Last post
+   656→
+   657→Then the AI can adapt content to that particular group.
+   658→
+   659→For example:
+   660→
+   661→Page version
+   662→
+   663→Introducing our new summer collection...
+   664→
+   665→Local fashion group
+   666→
+   667→For anyone looking for something new for the summer, we just received...
+   668→
+   669→Professional fashion group
+   670→
+   671→We've added several pieces to our summer collection...
+   672→
+   673→The content is contextually adapted, not blindly cross-posted.
+   674→
+   675→And if a destination can't be automated, the system should produce a ready-to-post package rather than attempting to bypass Facebook's controls.
+   676→
+   677→15. Module 9 — Monitoring
+   678→
+   679→After publishing, the system watches the pipeline.
+   680→
+   681→For example:
+   682→
+   683→09:00
+   684→Post scheduled
+   685→
+   686→09:01
+   687→Publishing request
+   688→
+   689→09:01
+   690→Facebook response
+   691→
+   692→✓ Published
+   693→
+   694→Post ID:
+   695→123456789
+   696→
+   697→If something fails:
+   698→
+   699→⚠ Facebook publishing failed
+   700→
+   701→Reason:
+   702→Authentication expired
+   703→
+   704→Action:
+   705→Reconnect Facebook
+   706→
+   707→[ FIX CONNECTION ]
+   708→
+   709→This is essential for a real SaaS product.
+   710→
+   711→Users don't care that an API token expired.
+   712→
+   713→They care that:
+   714→
+   715→"My client's post didn't go live."
+   716→
+   717→16. Module 10 — Analytics
+   718→
+   719→Now the system starts becoming much more valuable.
+   720→
+   721→Collect things like:
+   722→
+   723→reach
+   724→impressions
+   725→reactions
+   726→comments
+   727→shares
+   728→clicks
+   729→video views
+   730→engagement rate
+   731→follower changes
+   732→conversions where measurable
+   733→
+   734→Then associate performance with the content itself.
+   735→
+   736→Instead of merely saying:
+   737→
+   738→"Friday got 3,200 views."
+   739→
+   740→say:
+   741→
+   742→"Lifestyle posts generate 2.1× the engagement of promotional posts."
+   743→
+   744→That's actionable.
+   745→
+   746→17. Module 11 — Learning Engine
+   747→
+   748→This is where I would eventually introduce a feedback loop.
+   749→
+   750→Suppose after 100 posts the system discovers:
+   751→
+   752→CONTENT PERFORMANCE
+   753→
+   754→Customer stories       ███████████  9.1/10
+   755→Questions              ██████████   8.4/10
+   756→Product photos         ████████     7.2/10
+   757→Promotions             █████        5.1/10
+   758→Generic quotes         ██           2.3/10
+   759→
+   760→Next month, the strategy engine changes the content mix.
+   761→
+   762→It might say:
+   763→
+   764→"I'm increasing customer-story content from 15% to 25% because it consistently produces higher engagement."
+   765→
+   766→Now the system isn't just automating.
+   767→
+   768→It's learning the account.
+   769→
+   770→18. Module 12 — Campaign Memory
+   771→
+   772→This is another powerful layer.
+   773→
+   774→The system should remember campaigns.
+   775→
+   776→CAMPAIGNS
+   777→
+   778→Summer Collection
+   779→├── Objective
+   780→├── Dates
+   781→├── Assets
+   782→├── Posts
+   783→├── Performance
+   784→└── Results
+   785→
+   786→Christmas Sale
+   787→├── Objective
+   788→├── Dates
+   789→├── Assets
+   790→├── Posts
+   791→└── Results
+   792→
+   793→Then next year:
+   794→
+   795→"Last year's Christmas campaign performed particularly well with customer-story posts. Would you like me to incorporate that pattern?"
+   796→
+   797→That's where the product starts accumulating business-specific intelligence.
+   798→
+   799→19. The database
+   800→
+   801→I'd keep the data model modular too.
+   802→
+   803→Something approximately like:
+   804→
+   805→Users
+   806→Organizations
+   807→Workspaces
+   808→Brands
+   809→SocialAccounts
+   810→Destinations
+   811→
+   812→Assets
+   813→AssetAnalysis
+   814→
+   815→Products
+   816→Offers
+   817→Events
+   818→
+   819→Campaigns
+   820→ContentPillars
+   821→ContentPlans
+   822→ContentItems
+   823→
+   824→Posts
+   825→PostVariants
+   826→Schedules
+   827→PublishingJobs
+   828→
+   829→Groups
+   830→GroupRules
+   831→
+   832→Analytics
+   833→PerformanceSnapshots
+   834→
+   835→AIInstructions
+   836→BrandRules
+   837→AuditLogs
+   838→
+   839→The relationship is roughly:
+   840→
+   841→USER
+   842→ │
+   843→ └── WORKSPACE
+   844→       │
+   845→       ├── BRAND
+   846→       │    ├── Products
+   847→       │    ├── Brand Voice
+   848→       │    └── Rules
+   849→       │
+   850→       ├── SOCIAL ACCOUNTS
+   851→       │
+   852→       ├── CAMPAIGNS
+   853→       │
+   854→       ├── ASSETS
+   855→       │
+   856→       └── CONTENT
+   857→
+   858→This structure also allows you to eventually sell it to agencies.
+   859→
+   860→20. Agency mode
+   861→
+   862→This is where I'd seriously consider the commercial opportunity.
+   863→
+   864→A marketer logs in:
+   865→
+   866→MY WORKSPACE
+   867→
+   868→Clients
+   869→
+   870→├── ABC Restaurant
+   871→│   └── Facebook
+   872→│
+   873→├── XYZ Fashion
+   874→│   └── Facebook
+   875→│
+   876→├── John — Real Estate
+   877→│   └── Facebook
+   878→│
+   879→└── Local Gym
+   880→    └── Facebook
+   881→
+   882→Click ABC Restaurant.
+   883→
+   884→They see:
+   885→
+   886→ABC RESTAURANT
+   887→
+   888→This week
+   889→
+   890→Posts generated: 12
+   891→Approved: 10
+   892→Published: 8
+   893→Engagement: ↑ 24%
+   894→
+   895→[Review content]
+   896→[Calendar]
+   897→[Analytics]
+   898→[Brand]
+   899→[Campaigns]
+   900→
+   901→That changes the product from a creator tool into an agency operating system.
+   902→
+   903→21. Multi-user approval
+   904→
+   905→For agencies, I'd add roles:
+   906→
+   907→OWNER
+   908→│
+   909→├── ADMIN
+   910→│
+   911→├── CONTENT MANAGER
+   912→│
+   913→├── CLIENT
+   914→│
+   915→└── VIEWER
+   916→
+   917→The marketer creates the content.
+   918→
+   919→The client gets:
+   920→
+   921→"12 posts awaiting approval."
+   922→
+   923→Client clicks:
+   924→
+   925→Approve
+   926→
+   927→and that's it.
+   928→
+   929→This could be extremely useful.
+   930→
+   931→22. AI conversations
+   932→
+   933→I wouldn't make the entire interface buttons.
+   934→
+   935→Give each workspace an AI assistant.
+   936→
+   937→The marketer can say:
+   938→
+   939→"We have three new photos from the restaurant. Make them into content for next week."
+   940→
+   941→Or:
+   942→
+   943→"The client doesn't like the Friday caption. Make it less salesy."
+   944→
+   945→Or:
+   946→
+   947→"We have a promotion ending Saturday. Rework Thursday and Friday around it."
+   948→
+   949→Or:
+   950→
+   951→"What performed best last month?"
+   952→
+   953→Or:
+   954→
+   955→"Give me a content plan for October."
+   956→
+   957→The assistant operates inside the structured system rather than being a standalone chatbot.
+   958→
+   959→23. A major design principle: AI should not own the database
+   960→
+   961→This is important.
+   962→
+   963→Don't let the AI be the source of truth.
+   964→
+   965→For example:
+   966→
+   967→DATABASE:
+   968→Promotion = 20% off
+   969→Start = Sept 5
+   970→End = Sept 12
+   971→
+   972→AI can read this.
+   973→
+   974→It shouldn't be allowed to invent or permanently modify it without explicit authorization.
+   975→
+   976→So:
+   977→
+   978→SYSTEM OF RECORD
+   979→        │
+   980→        ▼
+   981→       AI
+   982→        │
+   983→        ▼
+   984→generated content
+   985→
+   986→rather than:
+   987→
+   988→AI
+   989→ ↓
+   990→whatever it thinks is true
+   991→ ↓
+   992→published
+   993→
+   994→That dramatically reduces hallucination problems.
+   995→
+   996→24. Security architecture
+   997→
+   998→For a real SaaS, social credentials are sensitive.
+   999→
+  1000→I'd isolate:
+  1001→
+  1002→Application
+  1003→     │
+  1004→     ├── User data
+  1005→     │
+  1006→     ├── Content
+  1007→     │
+  1008→     └── Social credentials
+  1009→             │
+  1010→             ▼
+  1011→      encrypted credential store
+  1012→
+  1013→Never expose long-lived tokens to the frontend.
+  1014→
+  1015→Use:
+  1016→
+  1017→encryption at rest
+  1018→encrypted secrets
+  1019→least-privilege permissions
+  1020→OAuth where supported
+  1021→token refresh handling
+  1022→audit logs
+  1023→account disconnect/revocation
+  1024→tenant isolation
+  1025→
+  1026→For an agency product, one client's credentials must never be accessible through another client's workspace.
+  1027→
+  1028→25. AI architecture
+  1029→
+  1030→I wouldn't use one model for everything.
+  1031→
+  1032→I'd use a model router conceptually:
+  1033→
+  1034→                    AI ORCHESTRATOR
+  1035→                           │
+  1036→       ┌───────────────────┼──────────────────┐
+  1037→       │                   │                  │
+  1038→       ▼                   ▼                  ▼
+  1039→   Vision model       Reasoning model     Fast text model
+  1040→       │                   │                  │
+  1041→   understand          strategy          captions
+  1042→   images              planning           variations
+  1043→
+  1044→And perhaps a fourth:
+  1045→
+  1046→       Safety / validation model
+  1047→
+  1048→The exact models can change over time.
+  1049→
+  1050→Your application shouldn't be tightly coupled to one model provider.
+  1051→
+  1052→26. The orchestration layer
+  1053→
+  1054→This is essentially the brain of the application.
+  1055→
+  1056→I'd make workflows explicit.
+  1057→
+  1058→For example:
+  1059→
+  1060→WEEKLY_CONTENT_WORKFLOW
+  1061→
+  1062→1. Receive assets
+  1063→2. Analyze assets
+  1064→3. Load brand profile
+  1065→4. Load active campaigns
+  1066→5. Load recent analytics
+  1067→6. Generate content strategy
+  1068→7. Generate content plan
+  1069→8. Generate post candidates
+  1070→9. Evaluate candidates
+  1071→10. Validate facts
+  1072→11. Validate brand rules
+  1073→12. Generate media variants
+  1074→13. Schedule
+  1075→14. Request approval
+  1076→15. Publish
+  1077→16. Monitor
+  1078→17. Collect analytics
+  1079→18. Update performance model
+  1080→
+  1081→Each step should be independently replaceable.
+  1082→
+  1083→That's what makes the system maintainable.
+  1084→
+  1085→27. Event-driven architecture
+  1086→
+  1087→Rather than one enormous process running continuously, I'd use events.
+  1088→
+  1089→For example:
+  1090→
+  1091→asset.uploaded
+  1092→       ↓
+  1093→asset.analyzed
+  1094→       ↓
+  1095→campaign.created
+  1096→       ↓
+  1097→content.plan.generated
+  1098→       ↓
+  1099→content.generated
+  1100→       ↓
+  1101→content.approved
+  1102→       ↓
+  1103→post.scheduled
+  1104→       ↓
+  1105→post.publish_due
+  1106→       ↓
+  1107→post.published
+  1108→       ↓
+  1109→analytics.updated
+  1110→
+  1111→That makes retries and failures much easier.
+  1112→
+  1113→28. Scheduling architecture
+  1114→
+  1115→You don't want:
+  1116→
+  1117→"The web server sleeps until Tuesday."
+  1118→
+  1119→Instead use a job queue.
+  1120→
+  1121→Conceptually:
+  1122→
+  1123→             SCHEDULER
+  1124→                 │
+  1125→                 ▼
+  1126→             JOB QUEUE
+  1127→                 │
+  1128→       ┌─────────┼─────────┐
+  1129→       ▼         ▼         ▼
+  1130→    Job #1    Job #2    Job #3
+  1131→       │         │         │
+  1132→       ▼         ▼         ▼
+  1133→   Facebook   Facebook   Facebook
+  1134→
+  1135→If Facebook fails:
+  1136→
+  1137→Job
+  1138→ ↓
+  1139→failure
+  1140→ ↓
+  1141→retry
+  1142→ ↓
+  1143→failure
+  1144→ ↓
+  1145→retry with backoff
+  1146→ ↓
+  1147→failure
+  1148→ ↓
+  1149→alert human
+  1150→29. Don't overbuild the first version
+  1151→
+  1152→This is where I'd be disciplined.
+  1153→
+  1154→The ideal eventual system is huge.
+  1155→
+  1156→The ideal first commercial system is much smaller.
+  1157→
+  1158→I'd build:
+  1159→
+  1160→V1
+  1161→
+  1162→User
+  1163→ ↓
+  1164→Upload 7 images
+  1165→ ↓
+  1166→Add weekly brief
+  1167→ ↓
+  1168→AI analyzes images
+  1169→ ↓
+  1170→AI creates 7–14 Facebook posts
+  1171→ ↓
+  1172→User reviews
+  1173→ ↓
+  1174→Schedule
+  1175→ ↓
+  1176→Facebook Page publishing
+  1177→ ↓
+  1178→Basic analytics
+  1179→
+  1180→That's it.
+  1181→
+  1182→No TikTok.
+  1183→
+  1184→No Instagram.
+  1185→
+  1186→No complicated Groups.
+  1187→
+  1188→No advertising.
+  1189→
+  1190→No autonomous commenting.
+  1191→
+  1192→No giant agent architecture.
+  1193→
+  1194→Get the fundamental loop working.
+  1195→
+  1196→30. V2
+  1197→
+  1198→Then:
+  1199→
+  1200→Multiple Facebook Pages
+  1201→+
+  1202→Brand profiles
+  1203→+
+  1204→Campaigns
+  1205→+
+  1206→Client workspaces
+  1207→+
+  1208→Approval workflow
+  1209→+
+  1210→Analytics
+  1211→+
+  1212→Content recycling
+  1213→
+  1214→Now you can sell it seriously to marketers.
+  1215→
+  1216→31. V3
+  1217→
+  1218→Then:
+  1219→
+  1220→Facebook Groups workflow
+  1221→+
+  1222→Instagram
+  1223→+
+  1224→WhatsApp
+  1225→+
+  1226→Lead tracking
+  1227→+
+  1228→AI comment assistance
+  1229→+
+  1230→Advanced analytics
+  1231→32. V4
+  1232→
+  1233→Eventually:
+  1234→
+  1235→Autonomous Marketing
+  1236→
+  1237→The user could say:
+  1238→
+  1239→"Grow this business's Facebook presence over the next 90 days. Budget is X. We want more local customers."
+  1240→
+  1241→The system could create:
+  1242→
+  1243→90-DAY STRATEGY
+  1244→
+  1245→Month 1
+  1246→Awareness
+  1247→
+  1248→Month 2
+  1249→Engagement
+  1250→
+  1251→Month 3
+  1252→Conversion
+  1253→
+  1254→Then continuously:
+  1255→
+  1256→PLAN
+  1257→ ↓
+  1258→CREATE
+  1259→ ↓
+  1260→PUBLISH
+  1261→ ↓
+  1262→MEASURE
+  1263→ ↓
+  1264→LEARN
+  1265→ ↓
+  1266→REPLAN
+  1267→
+  1268→That's the end-state.
+  1269→
+  1270→33. The most important distinction
+  1271→
+  1272→There are actually three products hiding inside this idea.
+  1273→
+  1274→Product A — AI Caption Generator
+  1275→Photo → caption
+  1276→
+  1277→Easy to build.
+  1278→
+  1279→Low moat.
+  1280→
+  1281→Product B — AI Content Scheduler
+  1282→Photos + brief
+  1283→      ↓
+  1284→Content calendar
+  1285→      ↓
+  1286→Scheduled posts
+  1287→
+  1288→Much better.
+  1289→
+  1290→Moderate moat.
+  1291→
+  1292→Product C — AI Marketing Operating System
+  1293→Business
+  1294→   ↓
+  1295→Goals
+  1296→   ↓
+  1297→Strategy
+  1298→   ↓
+  1299→Content
+  1300→   ↓
+  1301→Distribution
+  1302→   ↓
+  1303→Analytics
+  1304→   ↓
+  1305→Learning
+  1306→   ↓
+  1307→Improved strategy
+  1308→
+  1309→That's what I'd aim toward.
+  1310→
+  1311→Much stronger product.
+  1312→
+  1313→34. And I'd make "7 photos" part of the marketing
+  1314→
+  1315→There's something psychologically elegant about your original idea.
+  1316→
+  1317→Don't tell the customer:
+  1318→
+  1319→"Our AI uses sophisticated multimodal content orchestration to generate platform-specific marketing assets."
+  1320→
+  1321→Tell them:
+  1322→
+  1323→"Give us 7 photos. We'll handle the week."
+  1324→
+  1325→That's instantly understandable.
+  1326→
+  1327→Then underneath:
+  1328→
+  1329→Upload your content. Tell us what you're trying to achieve. We'll plan, write, schedule and publish your Facebook content for the week.
+  1330→
+  1331→That's a product proposition.
+  1332→
+  1333→35. One feature I would add very early
+  1334→Content recycling
+  1335→
+  1336→Suppose someone has 500 old posts.
+  1337→
+  1338→Most of them are effectively dead.
+  1339→
+  1340→Your system can identify:
+  1341→
+  1342→OLD POST
+  1343→"5 ways to..."
+  1344→
+  1345→Performance:
+  1346→Excellent
+  1347→
+  1348→Last published:
+  1349→8 months ago
+  1350→
+  1351→Then:
+  1352→
+  1353→This post performed unusually well. Want me to create 3 fresh variations?
+  1354→
+  1355→And generate:
+  1356→
+  1357→Version A: educational
+  1358→Version B: storytelling
+  1359→Version C: question/engagement
+  1360→
+  1361→That gives the marketer a virtually inexhaustible content reservoir.
+  1362→
+  1363→36. Another powerful feature: content gap detection
+  1364→
+  1365→The AI could look at the last 30 days and say:
+  1366→
+  1367→"You've posted 11 promotional posts but only 2 educational posts."
+  1368→
+  1369→or:
+  1370→
+  1371→"You haven't shown customers using your product in 18 days."
+  1372→
+  1373→or:
+  1374→
+  1375→"Your audience responds strongly to questions, but you've only published one this month."
+  1376→
+  1377→Then:
+  1378→
+  1379→Recommended next content
+  1380→
+  1381→"I recommend 3 customer-story posts, 2 educational posts and 1 promotional post."
+  1382→
+  1383→Now the system is actively thinking about the marketing, rather than simply executing instructions.
+  1384→
+  1385→37. The ultimate user experience
+  1386→
+  1387→Eventually, the user's interaction could be almost ridiculously simple.
+  1388→
+  1389→Monday morning:
+  1390→
+  1391→GOOD MORNING 👋
+  1392→
+  1393→I've prepared this week's Facebook content.
+  1394→
+  1395→Based on your goals and last month's performance:
+  1396→
+  1397→7 assets received
+  1398→12 posts created
+  1399→3 group-ready posts created
+  1400→2 old high-performing posts recycled
+  1401→
+  1402→Expected content mix:
+  1403→40% engagement
+  1404→30% awareness
+  1405→20% conversion
+  1406→10% community
+  1407→
+  1408→2 posts need your approval.
+  1409→
+  1410→[ REVIEW WEEK ]
+  1411→
+  1412→The user spends five minutes reviewing.
+  1413→
+  1414→Then:
+  1415→
+  1416→Approved.
+  1417→
+  1418→The system takes over.
+  1419→
+  1420→That's the experience I'd build toward.
+  1421→
+  1422→38. My recommended technical architecture
+  1423→
+  1424→If we were actually going to build this, I'd keep the infrastructure relatively boring.
+  1425→
+  1426→Something along these lines:
+  1427→
+  1428→FRONTEND
+  1429→────────
+  1430→Web application
+  1431→Dashboard
+  1432→Calendar
+  1433→Content editor
+  1434→Analytics
+  1435→Client management
+  1436→
+  1437→
+  1438→BACKEND
+  1439→───────
+  1440→API server
+  1441→Authentication
+  1442→Workspace management
+  1443→Business logic
+  1444→
+  1445→
+  1446→DATABASE
+  1447→────────
+  1448→PostgreSQL
+  1449→
+  1450→
+  1451→FILE STORAGE
+  1452→────────────
+  1453→Object storage
+  1454→Images
+  1455→Videos
+  1456→Generated media
+  1457→
+  1458→
+  1459→QUEUE
+  1460→─────
+  1461→Background job system
+  1462→
+  1463→
+  1464→AI LAYER
+  1465→────────
+  1466→AI gateway
+  1467→Vision
+  1468→Reasoning
+  1469→Generation
+  1470→Evaluation
+  1471→
+  1472→
+  1473→SOCIAL INTEGRATIONS
+  1474→───────────────────
+  1475→Facebook adapter
+  1476→Instagram adapter
+  1477→etc.
+  1478→
+  1479→
+  1480→ANALYTICS
+  1481→─────────
+  1482→Events
+  1483→Performance
+  1484→Attribution
+  1485→
+  1486→
+  1487→OBSERVABILITY
+  1488→─────────────
+  1489→Logs
+  1490→Errors
+  1491→Retries
+  1492→Alerts
+  1493→
+  1494→The exact technologies can be selected later. The architecture matters more than the framework.
+  1495→
+  1496→39. And one architectural rule I'd insist on
+  1497→Separate these four things:
+  1498→
+  1499→Content
+  1500→
+  1501→What are we saying?
+  1502→
+  1503→Strategy
+  1504→
+  1505→Why are we saying it?
+  1506→
+  1507→Distribution
+  1508→
+  1509→Where/when are we saying it?
+  1510→
+  1511→Measurement
+  1512→
+  1513→What happened after we said it?
+  1514→
+  1515→Don't merge them.
+  1516→
+  1517→That gives you:
+  1518→
+  1519→STRATEGY
+  1520→    ↓
+  1521→CONTENT
+  1522→    ↓
+  1523→DISTRIBUTION
+  1524→    ↓
+  1525→MEASUREMENT
+  1526→    ↓
+  1527→STRATEGY
+  1528→
+  1529→which becomes the central feedback loop of the entire product.
+  1530→
+  1531→40. The business model naturally follows
+  1532→
+  1533→For individual creators:
+  1534→
+  1535→Starter
+  1536→
+  1537→1 brand / 1 Page
+  1538→
+  1539→For businesses:
+  1540→
+  1541→Pro
+  1542→
+  1543→multiple campaigns + analytics + automation
+  1544→
+  1545→For agencies:
+  1546→
+  1547→Agency
+  1548→
+  1549→multiple clients + multiple Pages + approval workflows + team members
+  1550→
+  1551→And potentially:
+  1552→
+  1553→Enterprise
+  1554→
+  1555→white-label + API + custom workflows.
+  1556→
+  1557→The agency tier is particularly interesting because you're charging against time saved and clients managed, rather than simply "number of AI generations."

@@ -1,0 +1,348 @@
+// AI Content Engine — Prisma schema (V1 + V2)
+// SQLite is the local dev database. JSON-shaped fields are stored as String.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────────────────────────────────────
+// Users & Workspaces (V2 — agency / multi-client mode)
+// ───────────────────────────────────────────────────────────
+
+model User {
+  id              String             @id @default(cuid())
+  email           String             @unique
+  name            String?
+  avatarUrl       String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  memberships     WorkspaceMember[]
+  ownedWorkspaces Workspace[]        @relation("OwnedWorkspaces")
+  auditLogs       AuditLog[]
+}
+
+model Workspace {
+  id            String             @id @default(cuid())
+  name          String
+  slug          String             @unique
+  ownerId       String
+  owner         User               @relation("OwnedWorkspaces", fields: [ownerId], references: [id])
+  members       WorkspaceMember[]
+  brands        Brand[]
+  socialAccounts SocialAccount[]
+  campaigns     Campaign[]
+  assets        Asset[]
+  posts         Post[]
+  snapshots     PerformanceSnapshot[]
+  auditLogs     AuditLog[]
+  conversations AIConversation[]
+  // manual | assisted | autonomous (V2 approval workflow)
+  approvalMode  String             @default("assisted")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  // owner | admin | content_manager | client | viewer
+  role        String   @default("content_manager")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([workspaceId, userId])
+}
+
+// ───────────────────────────────────────────────────────────
+// Brand Brain (Module 3)
+// ───────────────────────────────────────────────────────────
+
+model Brand {
+  id              String       @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  audience        String?
+  location        String?
+  personality     String?
+  writingStyle    String?
+  cta             String?
+  // JSON-encoded arrays
+  avoid           String?
+  vocabularyUse   String?
+  vocabularyAvoid String?
+  products        Product[]
+  brandRules      BrandRule[]
+  campaigns       Campaign[]
+  assets          Asset[]
+  posts           Post[]
+  snapshots       PerformanceSnapshot[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model BrandRule {
+  id      String   @id @default(cuid())
+  brandId String
+  brand   Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  // prohibition | guideline | preference
+  type    String   @default("guideline")
+  rule    String
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  brandId         String
+  brand           Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  name            String
+  price           String?
+  description     String?
+  features        String?  // JSON array
+  url             String?
+  promotion       String?
+  promotionExpiry DateTime?
+  availability    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ───────────────────────────────────────────────────────────
+// Distribution (Module 8 — Publisher adapter model)
+// ───────────────────────────────────────────────────────────
+
+model SocialAccount {
+  id            String       @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // facebook | instagram | tiktok | x | linkedin
+  platform      String       @default("facebook")
+  name          String
+  accountId     String?
+  // In production: store encrypted. Sandbox: plain demo token.
+  accessToken   String?
+  tokenExpiry   DateTime?
+  // connected | disconnected | expired | revoked
+  status        String       @default("disconnected")
+  destinations  Destination[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Destination {
+  id                 String        @id @default(cuid())
+  socialAccountId    String
+  socialAccount      SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  // page | group
+  type               String        @default("page")
+  name               String
+  externalId         String?
+  postingRules       String?       // JSON
+  allowedFrequency   String?
+  // automated | manual (Groups are often manual)
+  automationStatus   String        @default("automated")
+  contentStyleHint   String?
+  lastPostAt         DateTime?
+  posts              Post[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+// ───────────────────────────────────────────────────────────
+// Campaigns & Content Planning (Modules 4 & 12)
+// ───────────────────────────────────────────────────────────
+
+model Campaign {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brandId     String?
+  brand       Brand?   @relation(fields: [brandId], references: [id])
+  name        String
+  // awareness | engagement | sales | leads | event_promotion
+  objective   String?
+  // JSON { pillar: percentage }
+  contentMix  String?
+  startDate   DateTime?
+  endDate     DateTime?
+  // draft | active | completed | archived
+  status      String   @default("active")
+  assets      Asset[]
+  posts       Post[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ───────────────────────────────────────────────────────────
+// Content Intake & Understanding (Modules 1 & 2)
+// ───────────────────────────────────────────────────────────
+
+model Asset {
+  id             String       @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id])
+  campaignId     String?
+  campaign       Campaign?    @relation(fields: [campaignId], references: [id])
+  // image | video | pdf | url | text
+  type           String       @default("image")
+  filename       String
+  filePath       String
+  originalUrl    String?
+  mimeType       String?
+  fileSize       Int?
+  width          Int?
+  height         Int?
+  // pending | analyzing | analyzed | failed
+  analysisStatus String       @default("pending")
+  analysis       AssetAnalysis?
+  posts          Post[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model AssetAnalysis {
+  id            String   @id @default(cuid())
+  assetId       String   @unique
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  subject       String?
+  setting       String?
+  objects       String?  // JSON array
+  peopleCount   Int?
+  emotion       String?
+  product       String?
+  quality       String?
+  visibleText   String?
+  suggestedUses String?  // JSON array
+  rawAnalysis   String?  // full VLM output
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ───────────────────────────────────────────────────────────
+// Content Generator & Approval (Modules 5, 6, 7)
+// ───────────────────────────────────────────────────────────
+
+model Post {
+  id             String       @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id])
+  campaignId     String?
+  campaign       Campaign?    @relation(fields: [campaignId], references: [id])
+  assetId        String?
+  asset          Asset?       @relation(fields: [assetId], references: [id])
+  destinationId  String?
+  destination    Destination? @relation(fields: [destinationId], references: [id])
+
+  // Content
+  // awareness | engagement | sales | leads | event_promotion
+  objective      String?
+  // product | educational | lifestyle | social_proof | engagement | community | promotional
+  contentPillar  String?
+  hook           String?
+  caption        String
+  cta            String?
+  hashtags       String?  // JSON array
+  altText        String?
+
+  // Lifecycle
+  // draft | pending_approval | approved | scheduled | publishing | published | failed | rejected
+  status         String       @default("draft")
+  approvalMode   String?
+  scheduledAt    DateTime?
+  publishedAt    DateTime?
+
+  // Publishing
+  externalPostId String?
+  publishingMethod String?     // api | manual
+  failureReason  String?
+  retryCount     Int          @default(0)
+  nextRetryAt    DateTime?
+
+  // Variants & evaluation
+  isVariant      Boolean      @default(false)
+  parentPostId   String?
+  score          Float?
+  confidence     Float?
+
+  // Content recycling (V2)
+  recycledFromId String?
+
+  analytics      PostAnalytics?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model PostAnalytics {
+  id              String   @id @default(cuid())
+  postId          String   @unique
+  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reach           Int      @default(0)
+  impressions     Int      @default(0)
+  reactions       Int      @default(0)
+  comments        Int      @default(0)
+  shares          Int      @default(0)
+  clicks          Int      @default(0)
+  videoViews      Int      @default(0)
+  engagementRate  Float    @default(0)
+  followerChange  Int      @default(0)
+  collectedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ───────────────────────────────────────────────────────────
+// Learning Engine (Module 11)
+// ───────────────────────────────────────────────────────────
+
+model PerformanceSnapshot {
+  id                    String   @id @default(cuid())
+  workspaceId           String
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brandId               String?
+  brand                 Brand?   @relation(fields: [brandId], references: [id])
+  pillarAverages        String?  // JSON { pillar: avg }
+  topPerformingContent  String?  // JSON
+  insights              String?  // JSON array of strings
+  // 7d | 30d | 90d
+  period                String   @default("30d")
+  createdAt             DateTime @default(now())
+}
+
+// ───────────────────────────────────────────────────────────
+// AI Assistant & Audit (Modules 22 & 24)
+// ───────────────────────────────────────────────────────────
+
+model AIConversation {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // JSON array of { role, content, timestamp }
+  messages    String   @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  entityType  String
+  entityId    String?
+  details     String?  // JSON
+  createdAt   DateTime @default(now())
+}

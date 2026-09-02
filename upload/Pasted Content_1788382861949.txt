@@ -1,0 +1,1557 @@
+create this system for me and make it production ready. No fake code or stubs, build module by module, test everything to make sure  it works as expected and give it to me: AI-operated content marketing system.
+
+The scheduler is only one module.
+
+The core product is:
+
+Raw content in → understand the brand and objective → develop a content strategy → generate platform-ready content → obtain approval where appropriate → publish → monitor results → learn → improve the next cycle.
+
+And because you're specifically interested in Facebook, I would make Facebook Pages the primary automated publishing destination, while treating Groups as a separate distribution workflow because their automation capabilities and permissions are more constrained.
+
+Below is how I would architect the whole thing.
+
+1. The product concept
+
+Imagine the user sees this when they open the application:
+
+                         AI CONTENT ENGINE
+
+ ┌──────────────────────────────────────────────────────────┐
+ │                    THIS WEEK                              │
+ │                                                          │
+ │  Campaign: Summer Collection                             │
+ │  Objective: Store visits + WhatsApp enquiries            │
+ │                                                          │
+ │  Content supplied: 7 photos                              │
+ │  Posts generated: 14                                    │
+ │  Posts scheduled: 12                                     │
+ │  Awaiting approval: 2                                    │
+ │                                                          │
+ │              [ REVIEW WEEK ]                             │
+ └──────────────────────────────────────────────────────────┘
+
+The user shouldn't have to understand:
+
+APIs
+content calendars
+prompt engineering
+hashtags
+posting frequency
+image dimensions
+campaign architecture
+analytics
+
+They tell the system:
+
+What do I have? What am I trying to accomplish?
+
+The system figures out the execution.
+
+2. The complete end-to-end architecture
+
+I'd divide the system into roughly 12 modules.
+
+                         ┌──────────────────┐
+                         │      USER        │
+                         └────────┬─────────┘
+                                  │
+                     photos / videos / brief
+                                  │
+                                  ▼
+                    ┌─────────────────────────┐
+                    │  1. CONTENT INTAKE      │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  2. CONTENT UNDERSTANDER │
+                    │                           │
+                    │  Vision + metadata       │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  3. BRAND BRAIN          │
+                    │                           │
+                    │  Voice                   │
+                    │  Audience                │
+                    │  Products                │
+                    │  Rules                   │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  4. STRATEGY ENGINE      │
+                    │                           │
+                    │  Objectives              │
+                    │  Content pillars         │
+                    │  Campaign                │
+                    │  Calendar                │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  5. CONTENT GENERATOR    │
+                    │                           │
+                    │  Captions                │
+                    │  Hooks                   │
+                    │  CTAs                    │
+                    │  Hashtags                │
+                    │  Variations              │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  6. MEDIA ENGINE         │
+                    │                           │
+                    │  Resize                  │
+                    │  Crop                    │
+                    │  Overlay                 │
+                    │  Alt text                │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  7. APPROVAL ENGINE      │
+                    │                           │
+                    │  Human review            │
+                    │  Edit                    │
+                    │  Regenerate              │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  8. SCHEDULER            │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                 ┌───────────────┼────────────────┐
+                 │               │                │
+                 ▼               ▼                ▼
+          ┌────────────┐  ┌────────────┐   ┌────────────┐
+          │ Facebook   │  │ Facebook   │   │ Other      │
+          │ Page API   │  │ Groups     │   │ Platforms  │
+          └────────────┘  └────────────┘   └────────────┘
+                 │               │                │
+                 ▼               ▼                ▼
+             published      manual/limited     published
+                 │
+                 └───────────────┬────────────────┘
+                                 ▼
+                    ┌─────────────────────────┐
+                    │  9. MONITORING           │
+                    │                           │
+                    │  Success/failure         │
+                    │  API errors              │
+                    │  Token expiry            │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │ 10. ANALYTICS            │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │ 11. LEARNING ENGINE      │
+                    │                           │
+                    │ "What worked?"           │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │ 12. NEXT-CYCLE PLANNER   │
+                    └─────────────────────────┘
+
+That modular separation is important.
+
+You don't want one giant AI agent responsible for everything.
+
+3. Module 1 — Content Intake
+
+This is the user's entry point.
+
+The user could upload:
+
+images
+videos
+PDFs
+product information
+flyers
+screenshots
+URLs
+text
+voice notes
+
+But for the initial product, I'd make the interface extremely simple.
+
+Weekly upload
+┌────────────────────────────────────────────┐
+│         CREATE THIS WEEK'S CONTENT         │
+│                                            │
+│  Drop photos/videos here                   │
+│                                            │
+│  [ + Upload ]                              │
+│                                            │
+│  7 files                                   │
+│                                            │
+│  ────────────────────────────────────────  │
+│                                            │
+│  What's happening this week?               │
+│                                            │
+│  [____________________________________]    │
+│                                            │
+│  What do you want to achieve?              │
+│                                            │
+│  ☑ Awareness                               │
+│  ☑ Engagement                              │
+│  ☑ Sales                                   │
+│  ☐ Leads                                   │
+│  ☐ Event promotion                         │
+│                                            │
+│             [GENERATE WEEK]                │
+└────────────────────────────────────────────┘
+
+The user can say:
+
+"We have a new product arriving. We want people to know about it and encourage them to visit the shop. Don't make every post a sales pitch."
+
+That's enough.
+
+4. Module 2 — Content Understanding
+
+This is where AI looks at the actual material.
+
+Suppose the user uploads seven photos.
+
+The system shouldn't immediately generate captions.
+
+First it creates a structured representation.
+
+For example:
+
+ASSET 001
+
+Type: Image
+Subject: New red handbag
+Setting: Retail store
+Visible text: "Summer 2026"
+Objects: handbag, display table
+People: none
+Product: Summer Collection
+Quality: high
+Suggested uses:
+  - product showcase
+  - announcement
+  - promotional content
+
+Another image might become:
+
+ASSET 002
+
+Subject: Customer holding handbag
+People: 1
+Setting: Store
+Emotion: smiling
+Suggested uses:
+  - social proof
+  - lifestyle
+  - community
+
+This gives the downstream AI facts about the actual image.
+
+That's much better than blindly asking an LLM:
+
+"Write a caption for this."
+
+5. Module 3 — The Brand Brain
+
+This could become one of your biggest competitive advantages.
+
+Every business gets a persistent Brand Profile.
+
+For example:
+
+Brand
+
+Luxury local fashion retailer.
+
+Audience
+
+Women 25–45.
+
+Location
+
+Maseru.
+
+Personality
+
+Elegant, warm, confident.
+
+Writing style
+
+Short paragraphs. Conversational. Never corporate.
+
+CTA
+
+Visit the store or message us.
+
+Avoid
+
+Excessive emojis
+Fake urgency
+Unsupported claims
+Generic motivational quotes
+
+Products
+
+Structured database containing:
+
+Product
+Price
+Description
+Availability
+Features
+URL
+Promotion
+Expiry date
+Brand vocabulary
+Use:
+"collection"
+"discover"
+"visit us"
+
+Avoid:
+"cheap"
+"guaranteed"
+"best in the country"
+
+Now the AI doesn't have to rediscover the business every week.
+
+6. Module 4 — Strategy Engine
+
+This is where I'd differentiate the product from generic AI caption generators.
+
+The system determines:
+
+What should we communicate?
+
+rather than merely:
+
+How should we phrase this?
+
+It takes:
+
+Brand
++
+Business goals
++
+Available content
++
+Previous performance
++
+Current campaign
++
+Calendar/events
+
+and produces a content strategy.
+
+For example:
+
+Weekly strategy
+
+Objective: Awareness + store visits
+
+Content mix:
+
+25% promotional
+25% educational
+20% lifestyle
+15% social proof
+15% engagement
+
+Then:
+
+MON
+Product introduction
+
+TUE
+Educational
+
+WED
+Lifestyle
+
+THU
+Customer/social proof
+
+FRI
+Promotion
+
+SAT
+Engagement
+
+SUN
+Community
+
+Notice what's happening.
+
+The user gave the machine 7 photos.
+
+The machine is now creating a marketing campaign.
+
+That's the valuable part.
+
+7. Module 5 — Content Generator
+
+Only after strategy has been determined does the AI write.
+
+For each planned post, it generates a structured object:
+
+{
+  "objective": "awareness",
+  "content_pillar": "product",
+  "asset": "asset_001",
+  "hook": "...",
+  "caption": "...",
+  "cta": "...",
+  "hashtags": ["..."],
+  "alt_text": "...",
+  "scheduled_time": "...",
+  "confidence": 0.91
+}
+
+I'd actually generate multiple candidates internally.
+
+For example:
+
+Candidate A
+Educational
+
+Candidate B
+Storytelling
+
+Candidate C
+Direct response
+
+Then another evaluation layer scores them.
+
+8. The AI should critique itself
+
+Don't do:
+
+LLM → caption → publish
+
+Do:
+
+LLM
+ ↓
+Generate 3 candidates
+ ↓
+Evaluator
+ ↓
+Check:
+  - factual accuracy
+  - brand voice
+  - repetition
+  - CTA
+  - spamminess
+  - prohibited claims
+  - image relevance
+  - campaign objective
+ ↓
+Best candidate
+
+This is much more reliable.
+
+9. Module 6 — Media Engine
+
+This is another module people overlook.
+
+Different platforms and placements can have different requirements.
+
+The media engine handles:
+
+image resizing
+cropping
+aspect-ratio adaptation
+thumbnails
+compression
+video processing
+captions/subtitles where appropriate
+alt text
+text overlays
+branding
+
+But there's an important principle:
+
+Never alter the original asset.
+
+Store:
+
+Original
+   │
+   ├── Facebook version
+   ├── Instagram version
+   ├── TikTok version
+   └── Ad version
+10. Module 7 — Approval Engine
+
+This is critical for a commercial product.
+
+The user should have three possible modes.
+
+Manual
+
+Everything requires approval.
+
+Assisted
+
+AI prepares everything; user approves the week's schedule.
+
+Autonomous
+
+AI publishes automatically unless something violates a rule.
+
+I'd make Assisted the default.
+
+11. The approval screen
+
+This could be one of the most important UI screens in the entire product.
+
+              WEEKLY CONTENT REVIEW
+
+MONDAY
+─────────────────────────────────────
+
+[ IMAGE ]
+
+"There's something new waiting..."
+
+Goal:
+Awareness
+
+Facebook Page
+Monday 09:00
+
+[ Edit ] [ Regenerate ] [ Approve ]
+
+─────────────────────────────────────
+
+TUESDAY
+─────────────────────────────────────
+
+[ IMAGE ]
+
+"Ever wondered why..."
+
+Goal:
+Education
+
+Facebook Page
+Tuesday 13:00
+
+[ Edit ] [ Regenerate ] [ Approve ]
+
+And at the bottom:
+
+12 posts ready
+
+[ APPROVE ALL ]
+
+One click.
+
+12. Module 8 — Scheduler
+
+Once approved, posts enter a queue.
+
+Internally I'd use something like:
+
+POST
+│
+├── Account
+├── Destination
+├── Asset
+├── Caption
+├── Campaign
+├── Scheduled time
+├── Status
+└── Publishing method
+
+Status could be:
+
+DRAFT
+↓
+APPROVED
+↓
+SCHEDULED
+↓
+PUBLISHING
+↓
+PUBLISHED
+
+or:
+
+FAILED
+↓
+RETRY
+↓
+PUBLISHED
+13. Facebook should be an adapter
+
+This is important for modularity.
+
+Don't hard-code Facebook throughout your application.
+
+Create a generic publishing interface:
+
+Publisher
+│
+├── FacebookPublisher
+├── InstagramPublisher
+├── TikTokPublisher
+├── XPublisher
+└── LinkedInPublisher
+
+Then your application says:
+
+Publish this content.
+
+The Facebook adapter knows how Facebook works.
+
+That means you can add another platform later without rebuilding the entire application.
+
+Meta's official developer ecosystem provides APIs for Page-related operations, but the exact permissions and capabilities available to an app depend on Meta's current platform policies and review requirements. So the Facebook adapter should isolate those assumptions rather than spreading them throughout your codebase.
+
+14. Facebook Groups should be a separate subsystem
+
+I would not treat Groups as equivalent to Pages.
+
+Instead:
+
+                DISTRIBUTION
+
+                    │
+          ┌─────────┴─────────┐
+          │                   │
+       PAGE              GROUPS
+          │                   │
+     API publishing      Eligibility check
+                              │
+                   ┌──────────┴─────────┐
+                   │                    │
+               Automated             Manual
+               where allowed          workflow
+
+For every group, maintain:
+
+Group
+├── Name
+├── URL/identifier
+├── Permission status
+├── Automation status
+├── Posting rules
+├── Allowed frequency
+├── Content style
+└── Last post
+
+Then the AI can adapt content to that particular group.
+
+For example:
+
+Page version
+
+Introducing our new summer collection...
+
+Local fashion group
+
+For anyone looking for something new for the summer, we just received...
+
+Professional fashion group
+
+We've added several pieces to our summer collection...
+
+The content is contextually adapted, not blindly cross-posted.
+
+And if a destination can't be automated, the system should produce a ready-to-post package rather than attempting to bypass Facebook's controls.
+
+15. Module 9 — Monitoring
+
+After publishing, the system watches the pipeline.
+
+For example:
+
+09:00
+Post scheduled
+
+09:01
+Publishing request
+
+09:01
+Facebook response
+
+✓ Published
+
+Post ID:
+123456789
+
+If something fails:
+
+⚠ Facebook publishing failed
+
+Reason:
+Authentication expired
+
+Action:
+Reconnect Facebook
+
+[ FIX CONNECTION ]
+
+This is essential for a real SaaS product.
+
+Users don't care that an API token expired.
+
+They care that:
+
+"My client's post didn't go live."
+
+16. Module 10 — Analytics
+
+Now the system starts becoming much more valuable.
+
+Collect things like:
+
+reach
+impressions
+reactions
+comments
+shares
+clicks
+video views
+engagement rate
+follower changes
+conversions where measurable
+
+Then associate performance with the content itself.
+
+Instead of merely saying:
+
+"Friday got 3,200 views."
+
+say:
+
+"Lifestyle posts generate 2.1× the engagement of promotional posts."
+
+That's actionable.
+
+17. Module 11 — Learning Engine
+
+This is where I would eventually introduce a feedback loop.
+
+Suppose after 100 posts the system discovers:
+
+CONTENT PERFORMANCE
+
+Customer stories       ███████████  9.1/10
+Questions              ██████████   8.4/10
+Product photos         ████████     7.2/10
+Promotions             █████        5.1/10
+Generic quotes         ██           2.3/10
+
+Next month, the strategy engine changes the content mix.
+
+It might say:
+
+"I'm increasing customer-story content from 15% to 25% because it consistently produces higher engagement."
+
+Now the system isn't just automating.
+
+It's learning the account.
+
+18. Module 12 — Campaign Memory
+
+This is another powerful layer.
+
+The system should remember campaigns.
+
+CAMPAIGNS
+
+Summer Collection
+├── Objective
+├── Dates
+├── Assets
+├── Posts
+├── Performance
+└── Results
+
+Christmas Sale
+├── Objective
+├── Dates
+├── Assets
+├── Posts
+└── Results
+
+Then next year:
+
+"Last year's Christmas campaign performed particularly well with customer-story posts. Would you like me to incorporate that pattern?"
+
+That's where the product starts accumulating business-specific intelligence.
+
+19. The database
+
+I'd keep the data model modular too.
+
+Something approximately like:
+
+Users
+Organizations
+Workspaces
+Brands
+SocialAccounts
+Destinations
+
+Assets
+AssetAnalysis
+
+Products
+Offers
+Events
+
+Campaigns
+ContentPillars
+ContentPlans
+ContentItems
+
+Posts
+PostVariants
+Schedules
+PublishingJobs
+
+Groups
+GroupRules
+
+Analytics
+PerformanceSnapshots
+
+AIInstructions
+BrandRules
+AuditLogs
+
+The relationship is roughly:
+
+USER
+ │
+ └── WORKSPACE
+       │
+       ├── BRAND
+       │    ├── Products
+       │    ├── Brand Voice
+       │    └── Rules
+       │
+       ├── SOCIAL ACCOUNTS
+       │
+       ├── CAMPAIGNS
+       │
+       ├── ASSETS
+       │
+       └── CONTENT
+
+This structure also allows you to eventually sell it to agencies.
+
+20. Agency mode
+
+This is where I'd seriously consider the commercial opportunity.
+
+A marketer logs in:
+
+MY WORKSPACE
+
+Clients
+
+├── ABC Restaurant
+│   └── Facebook
+│
+├── XYZ Fashion
+│   └── Facebook
+│
+├── John — Real Estate
+│   └── Facebook
+│
+└── Local Gym
+    └── Facebook
+
+Click ABC Restaurant.
+
+They see:
+
+ABC RESTAURANT
+
+This week
+
+Posts generated: 12
+Approved: 10
+Published: 8
+Engagement: ↑ 24%
+
+[Review content]
+[Calendar]
+[Analytics]
+[Brand]
+[Campaigns]
+
+That changes the product from a creator tool into an agency operating system.
+
+21. Multi-user approval
+
+For agencies, I'd add roles:
+
+OWNER
+│
+├── ADMIN
+│
+├── CONTENT MANAGER
+│
+├── CLIENT
+│
+└── VIEWER
+
+The marketer creates the content.
+
+The client gets:
+
+"12 posts awaiting approval."
+
+Client clicks:
+
+Approve
+
+and that's it.
+
+This could be extremely useful.
+
+22. AI conversations
+
+I wouldn't make the entire interface buttons.
+
+Give each workspace an AI assistant.
+
+The marketer can say:
+
+"We have three new photos from the restaurant. Make them into content for next week."
+
+Or:
+
+"The client doesn't like the Friday caption. Make it less salesy."
+
+Or:
+
+"We have a promotion ending Saturday. Rework Thursday and Friday around it."
+
+Or:
+
+"What performed best last month?"
+
+Or:
+
+"Give me a content plan for October."
+
+The assistant operates inside the structured system rather than being a standalone chatbot.
+
+23. A major design principle: AI should not own the database
+
+This is important.
+
+Don't let the AI be the source of truth.
+
+For example:
+
+DATABASE:
+Promotion = 20% off
+Start = Sept 5
+End = Sept 12
+
+AI can read this.
+
+It shouldn't be allowed to invent or permanently modify it without explicit authorization.
+
+So:
+
+SYSTEM OF RECORD
+        │
+        ▼
+       AI
+        │
+        ▼
+generated content
+
+rather than:
+
+AI
+ ↓
+whatever it thinks is true
+ ↓
+published
+
+That dramatically reduces hallucination problems.
+
+24. Security architecture
+
+For a real SaaS, social credentials are sensitive.
+
+I'd isolate:
+
+Application
+     │
+     ├── User data
+     │
+     ├── Content
+     │
+     └── Social credentials
+             │
+             ▼
+      encrypted credential store
+
+Never expose long-lived tokens to the frontend.
+
+Use:
+
+encryption at rest
+encrypted secrets
+least-privilege permissions
+OAuth where supported
+token refresh handling
+audit logs
+account disconnect/revocation
+tenant isolation
+
+For an agency product, one client's credentials must never be accessible through another client's workspace.
+
+25. AI architecture
+
+I wouldn't use one model for everything.
+
+I'd use a model router conceptually:
+
+                    AI ORCHESTRATOR
+                           │
+       ┌───────────────────┼──────────────────┐
+       │                   │                  │
+       ▼                   ▼                  ▼
+   Vision model       Reasoning model     Fast text model
+       │                   │                  │
+   understand          strategy          captions
+   images              planning           variations
+
+And perhaps a fourth:
+
+       Safety / validation model
+
+The exact models can change over time.
+
+Your application shouldn't be tightly coupled to one model provider.
+
+26. The orchestration layer
+
+This is essentially the brain of the application.
+
+I'd make workflows explicit.
+
+For example:
+
+WEEKLY_CONTENT_WORKFLOW
+
+1. Receive assets
+2. Analyze assets
+3. Load brand profile
+4. Load active campaigns
+5. Load recent analytics
+6. Generate content strategy
+7. Generate content plan
+8. Generate post candidates
+9. Evaluate candidates
+10. Validate facts
+11. Validate brand rules
+12. Generate media variants
+13. Schedule
+14. Request approval
+15. Publish
+16. Monitor
+17. Collect analytics
+18. Update performance model
+
+Each step should be independently replaceable.
+
+That's what makes the system maintainable.
+
+27. Event-driven architecture
+
+Rather than one enormous process running continuously, I'd use events.
+
+For example:
+
+asset.uploaded
+       ↓
+asset.analyzed
+       ↓
+campaign.created
+       ↓
+content.plan.generated
+       ↓
+content.generated
+       ↓
+content.approved
+       ↓
+post.scheduled
+       ↓
+post.publish_due
+       ↓
+post.published
+       ↓
+analytics.updated
+
+That makes retries and failures much easier.
+
+28. Scheduling architecture
+
+You don't want:
+
+"The web server sleeps until Tuesday."
+
+Instead use a job queue.
+
+Conceptually:
+
+             SCHEDULER
+                 │
+                 ▼
+             JOB QUEUE
+                 │
+       ┌─────────┼─────────┐
+       ▼         ▼         ▼
+    Job #1    Job #2    Job #3
+       │         │         │
+       ▼         ▼         ▼
+   Facebook   Facebook   Facebook
+
+If Facebook fails:
+
+Job
+ ↓
+failure
+ ↓
+retry
+ ↓
+failure
+ ↓
+retry with backoff
+ ↓
+failure
+ ↓
+alert human
+29. Don't overbuild the first version
+
+This is where I'd be disciplined.
+
+The ideal eventual system is huge.
+
+The ideal first commercial system is much smaller.
+
+I'd build:
+
+V1
+
+User
+ ↓
+Upload 7 images
+ ↓
+Add weekly brief
+ ↓
+AI analyzes images
+ ↓
+AI creates 7–14 Facebook posts
+ ↓
+User reviews
+ ↓
+Schedule
+ ↓
+Facebook Page publishing
+ ↓
+Basic analytics
+
+That's it.
+
+No TikTok.
+
+No Instagram.
+
+No complicated Groups.
+
+No advertising.
+
+No autonomous commenting.
+
+No giant agent architecture.
+
+Get the fundamental loop working.
+
+30. V2
+
+Then:
+
+Multiple Facebook Pages
++
+Brand profiles
++
+Campaigns
++
+Client workspaces
++
+Approval workflow
++
+Analytics
++
+Content recycling
+
+Now you can sell it seriously to marketers.
+
+31. V3
+
+Then:
+
+Facebook Groups workflow
++
+Instagram
++
+WhatsApp
++
+Lead tracking
++
+AI comment assistance
++
+Advanced analytics
+32. V4
+
+Eventually:
+
+Autonomous Marketing
+
+The user could say:
+
+"Grow this business's Facebook presence over the next 90 days. Budget is X. We want more local customers."
+
+The system could create:
+
+90-DAY STRATEGY
+
+Month 1
+Awareness
+
+Month 2
+Engagement
+
+Month 3
+Conversion
+
+Then continuously:
+
+PLAN
+ ↓
+CREATE
+ ↓
+PUBLISH
+ ↓
+MEASURE
+ ↓
+LEARN
+ ↓
+REPLAN
+
+That's the end-state.
+
+33. The most important distinction
+
+There are actually three products hiding inside this idea.
+
+Product A — AI Caption Generator
+Photo → caption
+
+Easy to build.
+
+Low moat.
+
+Product B — AI Content Scheduler
+Photos + brief
+      ↓
+Content calendar
+      ↓
+Scheduled posts
+
+Much better.
+
+Moderate moat.
+
+Product C — AI Marketing Operating System
+Business
+   ↓
+Goals
+   ↓
+Strategy
+   ↓
+Content
+   ↓
+Distribution
+   ↓
+Analytics
+   ↓
+Learning
+   ↓
+Improved strategy
+
+That's what I'd aim toward.
+
+Much stronger product.
+
+34. And I'd make "7 photos" part of the marketing
+
+There's something psychologically elegant about your original idea.
+
+Don't tell the customer:
+
+"Our AI uses sophisticated multimodal content orchestration to generate platform-specific marketing assets."
+
+Tell them:
+
+"Give us 7 photos. We'll handle the week."
+
+That's instantly understandable.
+
+Then underneath:
+
+Upload your content. Tell us what you're trying to achieve. We'll plan, write, schedule and publish your Facebook content for the week.
+
+That's a product proposition.
+
+35. One feature I would add very early
+Content recycling
+
+Suppose someone has 500 old posts.
+
+Most of them are effectively dead.
+
+Your system can identify:
+
+OLD POST
+"5 ways to..."
+
+Performance:
+Excellent
+
+Last published:
+8 months ago
+
+Then:
+
+This post performed unusually well. Want me to create 3 fresh variations?
+
+And generate:
+
+Version A: educational
+Version B: storytelling
+Version C: question/engagement
+
+That gives the marketer a virtually inexhaustible content reservoir.
+
+36. Another powerful feature: content gap detection
+
+The AI could look at the last 30 days and say:
+
+"You've posted 11 promotional posts but only 2 educational posts."
+
+or:
+
+"You haven't shown customers using your product in 18 days."
+
+or:
+
+"Your audience responds strongly to questions, but you've only published one this month."
+
+Then:
+
+Recommended next content
+
+"I recommend 3 customer-story posts, 2 educational posts and 1 promotional post."
+
+Now the system is actively thinking about the marketing, rather than simply executing instructions.
+
+37. The ultimate user experience
+
+Eventually, the user's interaction could be almost ridiculously simple.
+
+Monday morning:
+
+GOOD MORNING 👋
+
+I've prepared this week's Facebook content.
+
+Based on your goals and last month's performance:
+
+7 assets received
+12 posts created
+3 group-ready posts created
+2 old high-performing posts recycled
+
+Expected content mix:
+40% engagement
+30% awareness
+20% conversion
+10% community
+
+2 posts need your approval.
+
+[ REVIEW WEEK ]
+
+The user spends five minutes reviewing.
+
+Then:
+
+Approved.
+
+The system takes over.
+
+That's the experience I'd build toward.
+
+38. My recommended technical architecture
+
+If we were actually going to build this, I'd keep the infrastructure relatively boring.
+
+Something along these lines:
+
+FRONTEND
+────────
+Web application
+Dashboard
+Calendar
+Content editor
+Analytics
+Client management
+
+
+BACKEND
+───────
+API server
+Authentication
+Workspace management
+Business logic
+
+
+DATABASE
+────────
+PostgreSQL
+
+
+FILE STORAGE
+────────────
+Object storage
+Images
+Videos
+Generated media
+
+
+QUEUE
+─────
+Background job system
+
+
+AI LAYER
+────────
+AI gateway
+Vision
+Reasoning
+Generation
+Evaluation
+
+
+SOCIAL INTEGRATIONS
+───────────────────
+Facebook adapter
+Instagram adapter
+etc.
+
+
+ANALYTICS
+─────────
+Events
+Performance
+Attribution
+
+
+OBSERVABILITY
+─────────────
+Logs
+Errors
+Retries
+Alerts
+
+The exact technologies can be selected later. The architecture matters more than the framework.
+
+39. And one architectural rule I'd insist on
+Separate these four things:
+
+Content
+
+What are we saying?
+
+Strategy
+
+Why are we saying it?
+
+Distribution
+
+Where/when are we saying it?
+
+Measurement
+
+What happened after we said it?
+
+Don't merge them.
+
+That gives you:
+
+STRATEGY
+    ↓
+CONTENT
+    ↓
+DISTRIBUTION
+    ↓
+MEASUREMENT
+    ↓
+STRATEGY
+
+which becomes the central feedback loop of the entire product.
+
+40. The business model naturally follows
+
+For individual creators:
+
+Starter
+
+1 brand / 1 Page
+
+For businesses:
+
+Pro
+
+multiple campaigns + analytics + automation
+
+For agencies:
+
+Agency
+
+multiple clients + multiple Pages + approval workflows + team members
+
+And potentially:
+
+Enterprise
+
+white-label + API + custom workflows.
+
+The agency tier is particularly interesting because you're charging against time saved and clients managed, rather than simply "number of AI generations."
