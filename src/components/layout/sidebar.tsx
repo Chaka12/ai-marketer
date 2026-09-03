@@ -15,6 +15,7 @@ import {
   Send,
   Settings,
 } from 'lucide-react'
+import Image from 'next/image'
 
 const NAV: { id: SectionId; label: string; icon: React.ElementType; group?: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Overview' },
@@ -30,7 +31,7 @@ const NAV: { id: SectionId; label: string; icon: React.ElementType; group?: stri
 ]
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { section, navigate } = useApp()
+  const { section, navigate, workspaceName, workspaceLogoUrl } = useApp()
 
   const groups = NAV.reduce<Record<string, typeof NAV>>((acc, item) => {
     const g = item.group ?? 'Other'
@@ -38,24 +39,42 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     return acc
   }, {})
 
+  const initial = workspaceName?.trim()?.charAt(0)?.toUpperCase() ?? 'M'
+
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center gap-2 px-5 py-5 border-b border-sidebar-border">
-        <div className="size-9 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-display text-lg font-semibold shadow-sm">
-          M
-        </div>
-        <div className="flex flex-col">
-          <span className="font-display text-base font-semibold leading-tight">
-            Maison Été
+      {/* Brand header — fixed at top of sidebar */}
+      <div className="flex shrink-0 items-center gap-2.5 border-b border-sidebar-border px-4 py-4">
+        {workspaceLogoUrl ? (
+          <Image
+            src={workspaceLogoUrl}
+            alt={workspaceName}
+            width={36}
+            height={36}
+            className="size-9 shrink-0 rounded-md object-contain"
+            unoptimized
+          />
+        ) : (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary font-display text-lg font-semibold text-primary-foreground shadow-sm">
+            {initial}
+          </div>
+        )}
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-display text-base font-semibold leading-tight">
+            {workspaceName}
           </span>
-          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
             AI Content Engine
           </span>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-3 py-4 scroll-area-styled">
-        <nav className="flex flex-col gap-5">
+      {/* Navigation — scrolls if the viewport is short. The ScrollArea
+          component handles both desktop (sticky sidebar) and mobile (Sheet)
+          cases. On mobile the Sheet content area can be shorter than the nav
+          list, so this scroll is essential. */}
+      <ScrollArea className="min-h-0 flex-1 scroll-area-styled">
+        <nav className="flex flex-col gap-5 px-3 py-4">
           {Object.entries(groups).map(([group, items]) => (
             <div key={group} className="flex flex-col gap-1">
               <span className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
@@ -97,9 +116,10 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </nav>
       </ScrollArea>
 
-      <div className="border-t border-sidebar-border px-5 py-3">
-        <p className="text-[11px] text-muted-foreground">
-          {SECTION_TITLES[section]} · workspace <span className="font-medium">maison-ete</span>
+      {/* Footer — fixed at bottom of sidebar */}
+      <div className="shrink-0 border-t border-sidebar-border px-4 py-3">
+        <p className="truncate text-[11px] text-muted-foreground">
+          {SECTION_TITLES[section]} · {workspaceName}
         </p>
       </div>
     </div>

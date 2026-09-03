@@ -43,6 +43,9 @@ model Workspace {
   conversations AIConversation[]
   // manual | assisted | autonomous (V2 approval workflow)
   approvalMode  String             @default("assisted")
+  // Optional user-uploaded logo (stored as /uploads/... path). Falls back to
+  // the first letter of the workspace name when null.
+  logoUrl       String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 }

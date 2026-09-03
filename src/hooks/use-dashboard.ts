@@ -208,6 +208,121 @@ export function useUpdateWorkspace() {
   })
 }
 
+export function useUploadWorkspaceLogo() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(`/api/workspaces/${id}/logo`, { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? 'Logo upload failed')
+      return json.data as { logoUrl: string }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workspaces'] })
+    },
+  })
+}
+
+export function useDistributionAccounts() {
+  return useQuery<any[]>({
+    queryKey: ['distribution-accounts'],
+    queryFn: async () => {
+      const ws = await fetchJson<any[]>('/api/workspaces')
+      const workspaceId = ws?.[0]?.id ?? ''
+      return fetchJson<any[]>(`/api/distribution/accounts?workspaceId=${workspaceId}`)
+    },
+  })
+}
+
+export function useConnectAccount() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) => {
+      const res = await fetch('/api/distribution/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? 'Connect failed')
+      return json.data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['distribution-accounts'] })
+    },
+  })
+}
+
+export function useDisconnectAccount() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/distribution/accounts/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? 'Disconnect failed')
+      return json.data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['distribution-accounts'] })
+    },
+  })
+}
+
+export function useAddDestination() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) => {
+      const res = await fetch('/api/distribution/destinations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? 'Add destination failed')
+      return json.data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['distribution-accounts'] })
+    },
+  })
+}
+
+export function useUpdateDestination() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const res = await fetch(`/api/distribution/destinations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? 'Update failed')
+      return json.data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['distribution-accounts'] })
+    },
+  })
+}
+
+export function useRemoveDestination() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/distribution/destinations/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!json.success) throw new Error(json.error ?? 'Remove failed')
+      return json.data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['distribution-accounts'] })
+    },
+  })
+}
+
 export function useAudit() {
   return useQuery<any[]>({
     queryKey: ['audit'],

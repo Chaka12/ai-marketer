@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useMemo } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react'
 
 export type SectionId =
   | 'dashboard'
@@ -17,9 +17,11 @@ export type SectionId =
 interface AppCtx {
   section: SectionId
   setSection: (s: SectionId) => void
+  workspaceId: string | null
   workspaceSlug: string
   workspaceName: string
-  setWorkspaceName: (s: string) => void
+  workspaceLogoUrl: string | null
+  setWorkspace: (id: string, name: string, slug: string, logoUrl?: string | null) => void
   navigate: (s: SectionId) => void
 }
 
@@ -27,8 +29,34 @@ const Ctx = createContext<AppCtx | null>(null)
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [section, setSection] = useState<SectionId>('dashboard')
+  const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [workspaceName, setWorkspaceName] = useState('Maison Été')
-  const workspaceSlug = 'maison-ete'
+  const [workspaceSlug, setWorkspaceSlug] = useState('maison-ete')
+  const [workspaceLogoUrl, setWorkspaceLogoUrl] = useState<string | null>(null)
+
+  // On mount, fetch the default workspace so the sidebar shows the right
+  // name + logo immediately. The first workspace in the DB is the default.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/workspaces')
+        const json = await res.json()
+        if (!json.success || !json.data?.length) return
+        const ws = json.data[0]
+        if (cancelled) return
+        setWorkspaceId(ws.id)
+        setWorkspaceName(ws.name)
+        setWorkspaceSlug(ws.slug)
+        setWorkspaceLogoUrl(ws.logoUrl ?? null)
+      } catch {
+        // ignore — fallback to defaults
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const navigate = useCallback((s: SectionId) => {
     setSection(s)
@@ -37,9 +65,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const setWorkspace = useCallback(
+    (id: string, name: string, slug: string, logoUrl?: string | null) => {
+      setWorkspaceId(id)
+      setWorkspaceName(name)
+      setWorkspaceSlug(slug)
+      setWorkspaceLogoUrl(logoUrl ?? null)
+      // Persist the active workspace so it survives reloads.
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('activeWorkspaceId', id)
+      }
+    },
+    [],
+  )
+
   const value = useMemo(
-    () => ({ section, setSection, workspaceSlug, workspaceName, setWorkspaceName, navigate }),
-    [section, workspaceName, navigate],
+    () => ({
+      section,
+      setSection,
+      workspaceId,
+      workspaceSlug,
+      workspaceName,
+      workspaceLogoUrl,
+      setWorkspace,
+      navigate,
+    }),
+    [section, workspaceId, workspaceSlug, workspaceName, workspaceLogoUrl, setWorkspace, navigate],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

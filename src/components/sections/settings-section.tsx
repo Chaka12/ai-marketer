@@ -7,12 +7,22 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useWorkspaces, useUpdateWorkspace, useAudit, usePosts, useRecyclePost } from '@/hooks'
+import {
+  useWorkspaces,
+  useUpdateWorkspace,
+  useUploadWorkspaceLogo,
+  useAudit,
+  usePosts,
+  useRecyclePost,
+} from '@/hooks'
+import { useApp } from '@/components/providers/app-provider'
 import { PostCard } from '@/components/post-card'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { History, Recycle, ShieldCheck } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { History, Recycle, ShieldCheck, Upload, Building2, Trash2 } from 'lucide-react'
 
 const APPROVAL_MODES = [
   {
@@ -40,15 +50,177 @@ export function SettingsSection() {
   const { data: audit, isLoading: auditLoading } = useAudit()
   const { data: posts } = usePosts()
   const updateWorkspace = useUpdateWorkspace()
+  const uploadLogo = useUploadWorkspaceLogo()
   const recycle = useRecyclePost()
+  const { setWorkspace, workspaceId } = useApp()
 
-  const workspace = workspaces?.[0]
+  const workspace = workspaces?.find((w) => w.id === workspaceId) ?? workspaces?.[0]
   const recyclable = (posts ?? [])
     .filter((p) => p.status === 'published' && (p.analytics?.engagementRate ?? 0) > 0.04)
     .slice(0, 5)
 
+  // Local state for the name input so typing feels instant. We track the
+  // "source" name so we can resync when the workspace changes (e.g. after
+  // switching workspaces in the topbar).
+  const [nameDraft, setNameDraft] = useState(workspace?.name ?? '')
+  const [lastSyncedName, setLastSyncedName] = useState<string | undefined>(workspace?.name)
+  if (workspace?.name !== lastSyncedName) {
+    setLastSyncedName(workspace?.name)
+    setNameDraft(workspace?.name ?? '')
+  }
+
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function handleLogoChange(file: File) {
+    if (!workspace) return
+    try {
+      const result = await uploadLogo.mutateAsync({ id: workspace.id, file })
+      // Update the app context so the sidebar/topbar reflect the new logo
+      // immediately without a full reload.
+      setWorkspace(workspace.id, workspace.name, workspace.slug, result.logoUrl)
+      toast.success('Logo uploaded')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Logo upload failed')
+    }
+  }
+
+  async function handleSaveName() {
+    if (!workspace) return
+    const trimmed = nameDraft.trim()
+    if (!trimmed || trimmed === workspace.name) return
+    try {
+      const result = await updateWorkspace.mutateAsync({ id: workspace.id, patch: { name: trimmed } })
+      setWorkspace(workspace.id, result.name, workspace.slug, workspace.logoUrl ?? null)
+      toast.success('Workspace name updated')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Update failed')
+    }
+  }
+
+  async function handleClearLogo() {
+    if (!workspace) return
+    try {
+      const result = await updateWorkspace.mutateAsync({
+        id: workspace.id,
+        patch: { logoUrl: '' },
+      })
+      setWorkspace(workspace.id, workspace.name, workspace.slug, null)
+      toast.success('Logo cleared')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Clear failed')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Workspace profile (name + logo) */}
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Building2 className="size-5 text-primary" />
+              <div>
+                <CardTitle className="font-display">Workspace profile</CardTitle>
+                <CardDescription>
+                  Change the workspace name and upload a custom logo (PNG, JPEG, WebP or SVG, up to 2 MB).
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            {wsLoading || !workspace ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (
+              <>
+                {/* Logo */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+                    {workspace.logoUrl ? (
+                      <img
+                        src={workspace.logoUrl}
+                        alt={workspace.name}
+                        className="size-full object-contain"
+                      />
+                    ) : (
+                      <span className="font-display text-2xl font-semibold text-muted-foreground">
+                        {workspace.name?.charAt(0)?.toUpperCase() ?? '?'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileRef.current?.click()}
+                        disabled={uploadLogo.isPending}
+                      >
+                        <Upload className="size-4" />
+                        {uploadLogo.isPending ? 'Uploading…' : 'Upload logo'}
+                      </Button>
+                      {workspace.logoUrl && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearLogo}
+                          disabled={uploadLogo.isPending}
+                        >
+                          <Trash2 className="size-4" />
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Recommended: square image, at least 256×256px. Larger images are resized
+                      automatically.
+                    </p>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0]
+                        if (f) handleLogoChange(f)
+                        e.target.value = ''
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="workspace-name">Workspace name</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      id="workspace-name"
+                      value={nameDraft}
+                      onChange={(e) => setNameDraft(e.target.value)}
+                      placeholder="e.g. Maison Été"
+                      className="sm:max-w-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveName()
+                      }}
+                    />
+                    <Button
+                      onClick={handleSaveName}
+                      disabled={updateWorkspace.isPending || !nameDraft.trim() || nameDraft.trim() === workspace.name}
+                      size="sm"
+                    >
+                      Save name
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Slug: <code className="font-mono">{workspace.slug}</code> ·{' '}
+                    {workspace.brandCount} brand(s) · {workspace.postCount} post(s)
+                  </p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Approval mode */}
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
         <Card>

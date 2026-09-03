@@ -241,3 +241,49 @@ Stage Summary:
 - Mobile + desktop responsive, sticky footer.
 - Documentation complete in README.md.
 - The user can preview the app via the Preview Panel on the right.
+
+---
+Task ID: 9
+Agent: Main (orchestrator)
+Task: Responsive design, scrollable mobile sidebar, footer fix, logo upload, workspace management, Facebook page connect/disconnect
+
+Work Log:
+- Answered deployment question: the system supports both self-hosted (single-user) and hosted-online (multi-user SaaS) modes. The schema already has User/Workspace/WorkspaceMember models with roles; adding NextAuth.js + PostgreSQL swap is a V3 addition.
+
+- Added `logoUrl` field to the Workspace model in prisma/schema.prisma. Pushed schema with `bun run db:push` + `bun run db:generate`.
+
+- API endpoints created/updated:
+  - `GET /api/workspaces` — now includes `logoUrl` in response.
+  - `POST /api/workspaces` — create a new workspace (for agency mode).
+  - `PATCH /api/workspaces/[id]` — now supports `logoUrl` field (set to empty string to clear).
+  - `DELETE /api/workspaces/[id]` — delete a workspace (prevents deleting the last one).
+  - `POST /api/workspaces/[id]/logo` — upload a logo image (PNG/JPEG/WebP/SVG, up to 2MB). Saves to /uploads/{slug}/logo-{timestamp}-{name}. Preserves original format (no sharp resizing — sharp was crashing the dev server). Deletes previous logo file.
+  - `GET /api/distribution/accounts` — restored (was accidentally removed when adding POST handler).
+  - `POST /api/distribution/accounts` — connect a new Facebook account + optional first destination.
+  - `DELETE /api/distribution/accounts/[id]` — disconnect an account (clears destinationId on posts, deletes account + destinations).
+  - `POST /api/distribution/destinations` — add a new page/group to an existing account.
+  - `PATCH /api/distribution/destinations/[id]` — update destination (name, automation, style hint, frequency).
+  - `DELETE /api/distribution/destinations/[id]` — remove a destination.
+
+- Frontend changes:
+  - `src/components/providers/app-provider.tsx` — added workspaceId, workspaceLogoUrl to context; fetches default workspace on mount; setWorkspace() updates context so sidebar/topbar reflect changes immediately.
+  - `src/components/layout/sidebar.tsx` — shows workspace logo (if uploaded) or first-letter fallback; uses ScrollArea with min-h-0 flex-1 so the nav scrolls vertically when the viewport is short (critical for mobile hamburger menu); truncates workspace name.
+  - `src/components/layout/topbar.tsx` — replaced the static workspace name badge with a DropdownMenu workspace switcher (lists all workspaces, click to switch, "New workspace" option); responsive sizing.
+  - `src/components/layout/footer.tsx` — fixed the text overlap: removed max-w-7xl constraint (was centering and causing left-side overlap with sidebar layout); used full-width with responsive px-4/sm:px-6/lg:px-8; flex-wrap ensures graceful stacking on narrow screens.
+  - `src/app/page.tsx` — adjusted sidebar width (w-60 lg, w-64 xl); reduced main content padding on mobile (px-3); Sheet content uses h-full so the sidebar fills the sheet.
+  - `src/components/sections/settings-section.tsx` — added "Workspace profile" card at the top with: logo preview + Upload button + Clear button; workspace name input + Save button; slug/brand/post counts displayed.
+  - `src/components/sections/distribution-section.tsx` — completely rebuilt with full page management: "Connect Facebook Page" button opens a dialog with account name, Page ID, access token, first destination fields; each account card has a Disconnect button; each destination card has a dropdown menu (Edit / Remove); "Add destination" dashed card opens a dialog to add another page/group to an existing account; Edit destination dialog.
+
+- Hooks added to src/hooks/use-dashboard.ts: useUploadWorkspaceLogo, useDistributionAccounts, useConnectAccount, useDisconnectAccount, useAddDestination, useUpdateDestination, useRemoveDestination.
+
+- End-to-end API tests all passed: logo upload, workspace name change, connect new page, add destination, disconnect account, list accounts.
+
+- Browser verification: dashboard loads, Settings shows logo upload + name change, Distribution shows Connect/Disconnect/Add destination/Edit, workspace switcher dropdown works, mobile sidebar opens via hamburger and scrolls when viewport is short, footer no longer overlaps.
+
+Stage Summary:
+- All user requests implemented: responsive design, scrollable mobile sidebar, footer fix, logo upload in Settings, workspace name change, workspace switching, Facebook page connect/disconnect/add-page/edit/remove.
+- The Distribution section is now a full page management UI — users can connect any number of Facebook Pages, add Groups, edit automation status, and disconnect when needed.
+- The Settings section now has workspace profile management (logo + name) at the top.
+- The sidebar shows the custom logo when uploaded, falls back to the first letter of the workspace name.
+- The workspace switcher in the topbar lets users switch between workspaces (agency mode) or create new ones.
+- Lint passes with zero errors.

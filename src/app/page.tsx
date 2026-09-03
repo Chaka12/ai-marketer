@@ -19,7 +19,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 function SectionContent() {
   const { section } = useApp()
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
       <AnimatePresence mode="wait">
         <motion.div
           key={section}
@@ -48,8 +48,10 @@ function Shell() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <div className="flex flex-1">
-        {/* Sidebar — desktop */}
-        <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
+        {/* Sidebar — desktop. The sidebar is sticky and full-height; its
+            internal ScrollArea handles vertical scrolling when the nav list
+            is taller than the viewport. */}
+        <aside className="hidden w-60 shrink-0 border-r border-border lg:block xl:w-64">
           <div className="sticky top-0 h-screen">
             <Sidebar />
           </div>
