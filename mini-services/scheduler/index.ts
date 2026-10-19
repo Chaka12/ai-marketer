@@ -12,8 +12,9 @@
  *
  * Run with: `bun run dev` (hot reload) or `bun run start` (no hot reload).
  */
-import { PrismaClient } from '../../node_modules/@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { publishPost, getStats, setPending } from './publisher'
+import path from 'path'
 
 // ── Config ────────────────────────────────────────────────
 
@@ -25,9 +26,14 @@ const RETRY_BATCH_SIZE = 10 // max retries per tick
 // ── DB client ─────────────────────────────────────────────
 
 // Bun auto-loads .env from the cwd, so DATABASE_URL is set before this runs.
-// Fallback default guards against running without .env.
+// Portable fallback: use a relative path based on the parent project's cwd.
+// This works on any machine — not just /home/z/my-project.
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'file:/home/z/my-project/db/custom.db'
+  // The scheduler lives in <project-root>/mini-services/scheduler/, so the
+  // project root is two levels up. We use path.resolve to get an absolute
+  // path for the SQLite file (Prisma needs an absolute path on some OSes).
+  const projectRoot = path.resolve(__dirname, '..', '..')
+  process.env.DATABASE_URL = `file:${path.join(projectRoot, 'db', 'custom.db')}`
 }
 
 const db = new PrismaClient()

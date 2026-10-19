@@ -3,6 +3,7 @@
  */
 import 'server-only'
 import { db } from './db'
+import { WORKSPACE_SLUG, assetPublicPath, resolveUploadFsPath, UPLOADS_DIR } from './config'
 import type { Brand, Workspace } from '@prisma/client'
 
 // ── JSON helpers (SQLite stores JSON as plain text) ────────
@@ -70,13 +71,20 @@ export async function brandToDTO(brand: Brand): Promise<import('./types').BrandD
 // ── Workspace resolution ───────────────────────────────────
 
 /**
- * For the sandbox single-tenant demo we resolve the workspace by slug, or
- * fall back to the first workspace in the DB. A real app would resolve by
- * the authenticated session.
+ * Resolve the workspace for the current deployment.
+ *
+ * The system is single-tenant — it resolves ONE workspace. By default it
+ * uses WORKSPACE_SLUG from config (which reads from the WORKSPACE_SLUG
+ * env var, falling back to 'maison-ete'). If the slug isn't found, it
+ * falls back to the first workspace in the DB.
+ *
+ * Pass a slug argument to override the default (used by some API routes
+ * that accept a workspace slug in the URL).
  */
 export async function resolveWorkspace(slug?: string): Promise<Workspace | null> {
-  if (slug) {
-    const bySlug = await db.workspace.findUnique({ where: { slug } })
+  const targetSlug = slug || WORKSPACE_SLUG
+  if (targetSlug) {
+    const bySlug = await db.workspace.findUnique({ where: { slug: targetSlug } })
     if (bySlug) return bySlug
   }
   const first = await db.workspace.findFirst({
@@ -150,12 +158,9 @@ export function nextOccurrence(dayName: string, pillar: string, from = new Date(
 }
 
 // ── Path helpers for assets ────────────────────────────────
+//
+// Re-exported from config.ts so routes that already import from
+// server-utils get them automatically. These are PORTABLE — they work
+// on any machine, not just /home/z/my-project.
 
-export function assetPublicPath(filePath: string): string {
-  // Stored files live under /home/z/my-project/uploads/...
-  // We expose them via /uploads/...
-  if (filePath.startsWith('/home/z/my-project/uploads/')) {
-    return filePath.replace('/home/z/my-project/uploads/', '/uploads/')
-  }
-  return filePath
-}
+export { assetPublicPath, resolveUploadFsPath, UPLOADS_DIR, WORKSPACE_SLUG }

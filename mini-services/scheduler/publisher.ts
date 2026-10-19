@@ -17,7 +17,7 @@
  * The Facebook adapter is simulated — see the comment block inside
  * `simulateFacebookPublish` for the production Graph API equivalent.
  */
-import type { PrismaClient } from '../../node_modules/@prisma/client'
+import type { PrismaClient } from '@prisma/client'
 
 // ── Types ─────────────────────────────────────────────────
 

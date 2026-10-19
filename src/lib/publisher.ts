@@ -1,22 +1,17 @@
 /**
  * Publisher adapter pattern (Module 8).
  *
- * The rest of the app talks to a generic `Publisher` interface. Each platform
- * has its own adapter that knows how that platform's API works. Adding a new
- * platform means adding a new adapter — nothing else in the codebase changes.
+ * MODES:
+ *  - SIMULATION (default): pretends to publish, returns a fake post ID.
+ *    Used when FB_APP_ID + FB_APP_SECRET are not set.
+ *  - LIVE: calls the real Facebook Graph API. Activated by setting
+ *    FB_APP_ID + FB_APP_SECRET in the environment.
  *
- * In this sandbox there are no real Facebook credentials (Meta requires app
- * review for the Pages Publishing API). The Facebook adapter therefore runs
- * in SIMULATION mode: it pretends to publish, sleeps for a moment to mimic
- * network latency, writes a fake external post id, and returns success.
- *
- * The adapter is structured so that swapping in the real Graph API later is
- * a drop-in change — replace the body of `publish()` with a fetch() to
- * https://graph.facebook.com/v18.0/{page-id}/feed and the rest of the system
- * keeps working.
+ * In both modes the rest of the system behaves identically.
  */
 import 'server-only'
 import { db } from './db'
+import { assetPublicPath } from './config'
 import type { Post } from '@prisma/client'
 
 export interface PublishInput {
@@ -35,7 +30,6 @@ export interface PublishResult {
   success: boolean
   externalPostId?: string
   error?: string
-  /** Whether the publish actually went to the platform or was simulated. */
   simulated: boolean
 }
 
@@ -44,7 +38,11 @@ export interface Publisher {
   publish(input: PublishInput): Promise<PublishResult>
 }
 
-// ── Facebook Page adapter (simulated) ──────────────────────
+function isLiveMode(): boolean {
+  return !!(process.env.FB_APP_ID && process.env.FB_APP_SECRET)
+}
+
+const FB_GRAPH_VERSION = 'v21.0'
 
 class FacebookPublisher implements Publisher {
   platform = 'facebook'
@@ -52,48 +50,93 @@ class FacebookPublisher implements Publisher {
   async publish(input: PublishInput): Promise<PublishResult> {
     const { destination, post } = input
 
-    // Real implementation would do:
-    //
-    //   const res = await fetch(
-    //     `https://graph.facebook.com/v18.0/${destination.externalId}/feed`,
-    //     {
-    //       method: 'POST',
-    //       headers: { 'Content-Type': 'application/json' },
-    //       body: JSON.stringify({
-    //         message: post.caption,
-    //         access_token: input.accessToken,
-    //       }),
-    //     },
-    //   )
-    //   const json = await res.json()
-    //   if (!res.ok) return { success: false, error: json.error?.message, simulated: false }
-    //   return { success: true, externalPostId: json.id, simulated: false }
-    //
-    // Sandbox: simulate.
+    if (isLiveMode() && input.accessToken && destination.externalId) {
+      return this.publishLive(input)
+    }
 
-    await new Promise((r) => setTimeout(r, 600 + Math.random() * 800))
-
-    // 5% chance of a simulated transient failure so the retry/backoff logic
-    // is exercised end-to-end.
+    // SIMULATION mode
+    await new Promise((r) => setTimeout(r, 400 + Math.random() * 600))
     if (Math.random() < 0.05) {
       return {
         success: false,
-        error: 'Simulated transient error: Facebook API returned 503.',
+        error: 'Simulated transient error (set FB_APP_ID + FB_APP_SECRET for live mode).',
         simulated: true,
       }
     }
-
     const externalPostId = `sim_${destination.externalId ?? destination.id}_${post.id}_${Date.now()}`
+    return { success: true, externalPostId, simulated: true }
+  }
 
-    return {
-      success: true,
-      externalPostId,
-      simulated: true,
+  private async publishLive(input: PublishInput): Promise<PublishResult> {
+    const { destination, post } = input
+
+    const asset = post.assetId
+      ? await db.asset.findUnique({ where: { id: post.assetId } })
+      : null
+
+    const hasImage = asset && asset.type === 'image' && asset.filePath
+
+    let url: string
+    let body: Record<string, unknown>
+
+    if (hasImage) {
+      const publicAssetUrl = process.env.NEXT_PUBLIC_BASE_URL
+        ? `${process.env.NEXT_PUBLIC_BASE_URL}${assetPublicPath(asset.filePath)}`
+        : assetPublicPath(asset.filePath)
+      url = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${destination.externalId}/photos`
+      body = {
+        caption: buildFullCaption(post),
+        url: publicAssetUrl,
+        access_token: input.accessToken,
+        published: true,
+      }
+    } else {
+      url = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${destination.externalId}/feed`
+      body = {
+        message: buildFullCaption(post),
+        access_token: input.accessToken,
+      }
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        return {
+          success: false,
+          error: json.error?.message ?? `Facebook API error: ${res.status}`,
+          simulated: false,
+        }
+      }
+      return { success: true, externalPostId: json.id ?? json.post_id, simulated: false }
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+        simulated: false,
+      }
     }
   }
 }
 
-// ── Registry ───────────────────────────────────────────────
+function buildFullCaption(post: Post): string {
+  const parts: string[] = []
+  if (post.hook) parts.push(post.hook)
+  if (post.caption) parts.push(post.caption)
+  if (post.cta) parts.push(post.cta)
+  try {
+    const tags = JSON.parse(post.hashtags ?? '[]')
+    if (Array.isArray(tags) && tags.length > 0) parts.push(tags.join(' '))
+  } catch {}
+  return parts.join('\n\n')
+}
+
+// (assetFilePathToPublic removed — now using assetPublicPath from config.ts,
+//  which is portable and works on any machine, not just /home/z/my-project)
 
 const publishers: Record<string, Publisher> = {
   facebook: new FacebookPublisher(),
@@ -103,32 +146,15 @@ export function getPublisher(platform: string): Publisher | null {
   return publishers[platform] ?? null
 }
 
-/**
- * High-level helper used by the scheduler. Looks up the destination's account,
- * finds the right adapter, publishes, and updates the Post row in the DB.
- */
 export async function publishPost(postId: string): Promise<PublishResult> {
   const post = await db.post.findUnique({
     where: { id: postId },
-    include: {
-      destination: {
-        include: {
-          socialAccount: true,
-        },
-      },
-    },
+    include: { destination: { include: { socialAccount: true } } },
   })
 
-  if (!post) {
-    return { success: false, error: 'Post not found', simulated: false }
-  }
-
+  if (!post) return { success: false, error: 'Post not found', simulated: false }
   if (!post.destination) {
-    return {
-      success: false,
-      error: 'Post has no destination assigned',
-      simulated: false,
-    }
+    return { success: false, error: 'Post has no destination assigned', simulated: false }
   }
 
   const publisher = getPublisher(post.destination.socialAccount.platform)
@@ -140,11 +166,7 @@ export async function publishPost(postId: string): Promise<PublishResult> {
     }
   }
 
-  // Mark as publishing
-  await db.post.update({
-    where: { id: postId },
-    data: { status: 'publishing' },
-  })
+  await db.post.update({ where: { id: postId }, data: { status: 'publishing' } })
 
   try {
     const result = await publisher.publish({
@@ -169,7 +191,6 @@ export async function publishPost(postId: string): Promise<PublishResult> {
           failureReason: null,
         },
       })
-      // Update destination lastPostAt
       await db.destination.update({
         where: { id: post.destination.id },
         data: { lastPostAt: new Date() },
@@ -184,7 +205,6 @@ export async function publishPost(postId: string): Promise<PublishResult> {
         },
       })
     }
-
     return result
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -198,4 +218,8 @@ export async function publishPost(postId: string): Promise<PublishResult> {
     })
     return { success: false, error: message, simulated: false }
   }
+}
+
+export function getPublishMode(): 'live' | 'simulation' {
+  return isLiveMode() ? 'live' : 'simulation'
 }

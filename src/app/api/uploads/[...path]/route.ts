@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { promises as fs } from 'fs'
 import path from 'path'
-
-const UPLOADS_ROOT = '/home/z/my-project/uploads'
+import { UPLOADS_DIR, resolveUploadFsPath, ensureDirectories } from '@/lib/config'
 
 const EXT_TO_MIME: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -20,6 +19,9 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   try {
+    // Ensure the uploads directory exists (portable — creates <cwd>/uploads)
+    await ensureDirectories()
+
     const { path: segments } = await params
     if (!segments || segments.length === 0) {
       return new NextResponse('Not found', { status: 404 })
@@ -31,10 +33,18 @@ export async function GET(
     if (cleaned.length !== segments.length) {
       return new NextResponse('Not found', { status: 404 })
     }
-    const filePath = path.join(UPLOADS_ROOT, ...cleaned)
-    if (!filePath.startsWith(UPLOADS_ROOT)) {
+
+    // Convert the public URL path back to a filesystem path using the
+    // portable config. This works on ANY machine — the UPLOADS_DIR is
+    // derived from process.cwd(), not hardcoded.
+    const publicPath = '/uploads/' + cleaned.join('/')
+    const filePath = resolveUploadFsPath(publicPath)
+
+    // Safety: ensure the resolved path is inside UPLOADS_DIR
+    if (!filePath.startsWith(UPLOADS_DIR)) {
       return new NextResponse('Not found', { status: 404 })
     }
+
     try {
       await fs.access(filePath)
     } catch {

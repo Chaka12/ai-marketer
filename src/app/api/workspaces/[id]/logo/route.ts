@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { writeAudit, assetPublicPath } from '@/lib/server-utils'
+import { UPLOADS_DIR, resolveUploadFsPath } from '@/lib/config'
 import { promises as fs } from 'fs'
 import path from 'path'
-
-const UPLOADS_ROOT = '/home/z/my-project/uploads'
 
 const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'])
 
@@ -37,29 +36,23 @@ export async function POST(
       )
     }
 
-    const uploadDir = path.join(UPLOADS_ROOT, workspace.slug)
+    // Use portable UPLOADS_DIR from config
+    const uploadDir = path.join(UPLOADS_DIR, workspace.slug)
     await fs.mkdir(uploadDir, { recursive: true })
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const timestamp = Date.now()
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').slice(0, 60)
-    // Preserve the original extension so SVG stays SVG, PNG stays PNG, etc.
-    // The sidebar/topbar use object-contain so any aspect ratio works.
     const filename = `logo-${timestamp}-${safeName}`
     const filePath = path.join(uploadDir, filename)
 
-    // Save the file as-is. We intentionally do NOT run sharp here because
-    // sharp is a native module that can crash the dev server process under
-    // certain conditions. The UI uses object-contain which handles any
-    // dimensions gracefully. If you want server-side resizing, do it in a
-    // background job (e.g. the scheduler mini-service) instead.
     await fs.writeFile(filePath, buffer)
 
     // Delete the previous logo file if it exists (keep filesystem tidy).
     if (workspace.logoUrl) {
-      const prevPath = workspace.logoUrl.replace(/^\/uploads\//, UPLOADS_ROOT + '/')
+      const prevPath = resolveUploadFsPath(workspace.logoUrl)
       // Only delete files inside the uploads directory.
-      if (prevPath.startsWith(UPLOADS_ROOT)) {
+      if (prevPath.startsWith(UPLOADS_DIR)) {
         await fs.rm(prevPath, { force: true })
       }
     }

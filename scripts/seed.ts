@@ -9,7 +9,9 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import sharp from 'sharp'
 
-const UPLOADS_DIR = '/home/z/my-project/uploads/demo'
+// Portable path — uses process.cwd() so it works on any machine.
+// Falls back to the project's uploads directory: <cwd>/uploads/demo
+const UPLOADS_DIR = path.join(process.cwd(), 'uploads', 'demo')
 
 async function ensureUploadsDir() {
   await fs.mkdir(UPLOADS_DIR, { recursive: true })
