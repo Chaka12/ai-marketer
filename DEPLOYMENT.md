@@ -43,21 +43,28 @@ Or extract from a zip file.
 ### Step 2: Install dependencies
 
 ```bash
-bun install
-cd mini-services/scheduler && bun install && cd ../..
+bun install                              # main app
+cd mini-services/scheduler && bun install && cd ../..  # scheduler
 ```
 
 ### Step 3: Configure environment
 
-Create `.env` in the project root:
+Create `.env` in the project root (copy from `.env.example`):
 
 ```env
-DATABASE_URL="file:./db/custom.db"
+# SQLite — relative path (portable across machines)
+# Prisma resolves this relative to prisma/schema.prisma, so ../db/custom.db
+# points to <project-root>/db/custom.db
+DATABASE_URL="file:../db/custom.db"
 
 # Optional — only for live Facebook publishing:
 # FB_APP_ID=your_meta_app_id
 # FB_APP_SECRET=your_meta_app_secret
 # NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+# Optional — override defaults:
+# UPLOADS_DIR=/path/to/uploads   (default: <project-root>/uploads)
+# WORKSPACE_SLUG=your-workspace  (default: maison-ete)
 ```
 
 ### Step 4: Set up database
@@ -81,6 +88,9 @@ bun run dev
 bun run scheduler
 ```
 
+> The scheduler command loads `.env` from the project root automatically.
+> Both the app and scheduler share the same SQLite database.
+
 ### Step 6: Open the app
 
 Go to `http://localhost:3000` in your browser.
@@ -92,15 +102,17 @@ Go to `http://localhost:3000` in your browser.
 #!/bin/bash
 cd "$(dirname "$0")"
 bun run dev > app.log 2>&1 &
-cd mini-services/scheduler && bun run dev > ../../scheduler.log 2>&1 &
+bun run scheduler > scheduler.log 2>&1 &
 echo "Started. Open http://localhost:3000"
+echo "Logs: app.log, scheduler.log"
 ```
 
 **Windows** — create `start.bat`:
 ```bat
 @echo off
+cd /d "%~dp0"
 start /min cmd /c "bun run dev > app.log 2>&1"
-start /min cmd /c "cd mini-services\scheduler && bun run dev > ..\..\scheduler.log 2>&1"
+start /min cmd /c "bun run scheduler > scheduler.log 2>&1"
 echo Started. Open http://localhost:3000
 ```
 
@@ -153,8 +165,9 @@ bun run dev   # restart
 | `bun: command not found` | Close/reopen terminal, or `source ~/.bashrc` |
 | Port 3000 in use | `bun run dev -- -p 3001` |
 | Scheduler not publishing | Check `http://localhost:3003/health` returns `{"ok":true}` |
-| Images don't appear | Ensure `uploads/` folder exists and is writable |
+| Images don't appear | `uploads/` folder auto-creates on startup — check write permissions |
 | Database locked | Stop processes, delete `db/custom.db`, run `db:push` + `seed` |
+| Images still broken after deploy | Paths are now portable — check `src/lib/config.ts` for the upload dir |
 
 ---
 
@@ -213,6 +226,9 @@ const publicPath = blob.url
 | `CRON_SECRET` | Random string |
 | `ZAI_API_KEY` | AI SDK key |
 
+> On Vercel, the scheduler runs via Vercel Cron (configured in `vercel.json`) —
+> you don't need to run `bun run scheduler` separately.
+
 ### Step 7: Migrate database
 
 ```bash
@@ -244,8 +260,9 @@ cd mini-services/scheduler && bun install && cd ../..
 
 ### Step 3: Configure
 
+Create `.env`:
 ```env
-DATABASE_URL=file:./db/custom.db
+DATABASE_URL="file:../db/custom.db"
 FB_APP_ID=your_app_id
 FB_APP_SECRET=your_app_secret
 NEXT_PUBLIC_BASE_URL=https://yourdomain.com
@@ -257,7 +274,13 @@ NEXT_PUBLIC_BASE_URL=https://yourdomain.com
 bun run db:push && bun run seed
 ```
 
-### Step 5: Reverse proxy (Caddy — auto HTTPS)
+### Step 5: Build
+
+```bash
+bun run build
+```
+
+### Step 6: Reverse proxy (Caddy — auto HTTPS)
 
 `/etc/caddy/Caddyfile`:
 ```
@@ -269,19 +292,22 @@ yourdomain.com {
 sudo systemctl start caddy
 ```
 
-### Step 6: systemd services
+### Step 7: systemd services
 
 Create `/etc/systemd/system/ai-content-engine.service`:
 ```ini
 [Unit]
 Description=AI Content Engine
 After=network.target
+
 [Service]
 Type=simple
 User=youruser
 WorkingDirectory=/home/youruser/ai-content-engine
 ExecStart=/usr/bin/bun run start
 Restart=always
+RestartSec=5
+
 [Install]
 WantedBy=multi-user.target
 ```
@@ -291,22 +317,29 @@ Create `/etc/systemd/system/ai-content-scheduler.service`:
 [Unit]
 Description=AI Content Engine Scheduler
 After=network.target
+
 [Service]
 Type=simple
 User=youruser
-WorkingDirectory=/home/youruser/ai-content-engine/mini-services/scheduler
-ExecStart=/usr/bin/bun run start
+WorkingDirectory=/home/youruser/ai-content-engine
+ExecStart=/usr/bin/bun --env-file=.env mini-services/scheduler/index.ts
 Restart=always
+RestartSec=5
+
 [Install]
 WantedBy=multi-user.target
 ```
+
+> Note: both services run from the project root (`WorkingDirectory`) so they
+> can find `.env`. The scheduler command includes `--env-file=.env` to
+> explicitly load the environment file.
 
 ```bash
 sudo systemctl enable ai-content-engine ai-content-scheduler
 sudo systemctl start ai-content-engine ai-content-scheduler
 ```
 
-### Step 7: Facebook redirect URI
+### Step 8: Facebook redirect URI
 
 Add `https://yourdomain.com/api/auth/facebook/callback` to Meta App settings.
 
@@ -320,6 +353,8 @@ Add `https://yourdomain.com/api/auth/facebook/callback` to Meta App settings.
 | Setup | 10 min | 30 min | 45 min |
 | Uptime | When PC is on | 24/7 | 24/7 |
 | Database | SQLite | PostgreSQL | SQLite/PostgreSQL |
+| File storage | Local folder | Vercel Blob | Local folder |
+| Scheduler | Background process | Vercel Cron | systemd service |
 | Facebook OAuth | Needs tunnel | Native | Native |
 | Best for | Personal/testing | Free 24/7 | Production |
 
@@ -329,6 +364,7 @@ Add `https://yourdomain.com/api/auth/facebook/callback` to Meta App settings.
 
 - [ ] App loads
 - [ ] Dashboard shows data
+- [ ] Images display correctly (no broken image icons)
 - [ ] Upload image works
 - [ ] Generate week works (1-4 min)
 - [ ] Approve posts works
@@ -346,10 +382,12 @@ Add `https://yourdomain.com/api/auth/facebook/callback` to Meta App settings.
 
 | Variable | Required | Description |
 |---|---|---|
-| `DATABASE_URL` | Yes | `file:./db/custom.db` (SQLite) or `postgresql://...` |
+| `DATABASE_URL` | Yes | `file:../db/custom.db` (SQLite) or `postgresql://...` (Postgres) |
 | `FB_APP_ID` | Live FB | Meta App ID |
 | `FB_APP_SECRET` | Live FB | Meta App Secret |
-| `NEXT_PUBLIC_BASE_URL` | Live FB | Public URL |
+| `NEXT_PUBLIC_BASE_URL` | Live FB | Public URL of your deployment |
+| `UPLOADS_DIR` | Optional | Override upload directory (default: `<project>/uploads`) |
+| `WORKSPACE_SLUG` | Optional | Override workspace slug (default: `maison-ete`) |
 | `BLOB_READ_WRITE_TOKEN` | Vercel | Vercel Blob token |
 | `CRON_SECRET` | Vercel | Protects cron endpoint |
 | `ZAI_API_KEY` | Yes | AI SDK key |
