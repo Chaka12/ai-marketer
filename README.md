@@ -33,7 +33,7 @@ architecture brief:
 ## Quick start
 
 ```bash
-# 1. Install dependencies (already done in this sandbox)
+# 1. Install dependencies 
 bun install
 
 # 2. Push the database schema
@@ -49,9 +49,6 @@ bun run dev
 bun run scheduler
 ```
 
-Open the app via the **Preview Panel** on the right side of the IDE.
-(Do **not** navigate to `http://localhost:3000` directly — it is internal to
-the sandbox.)
 
 ---
 
